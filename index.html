@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Stable Infinite Canvas</title>
+<title>World Canvas Rebuild</title>
 
 <style>
 body {
@@ -10,15 +10,15 @@ body {
   font-family:Arial;
 }
 
-/* CAMERA LAYER */
-#stage {
+/* WORLD CONTAINER */
+#world {
   position:absolute;
   top:0;
   left:0;
   transform-origin:0 0;
 }
 
-/* CANVAS (DRAWING ONLY) */
+/* CANVAS (DRAW LAYER) */
 canvas {
   position:fixed;
   top:0;
@@ -49,8 +49,8 @@ canvas {
   display:none;
   margin-top:10px;
   background:white;
-  border:1px solid #ccc;
   border-radius:10px;
+  border:1px solid #ccc;
 }
 
 .item {
@@ -79,25 +79,25 @@ iframe {
 
 <body>
 
-<!-- CAMERA WORLD -->
-<div id="stage"></div>
+<!-- WORLD -->
+<div id="world"></div>
 
-<!-- DRAW CANVAS -->
+<!-- DRAW -->
 <canvas id="canvas"></canvas>
 
 <!-- UI -->
 <div id="ui">
   <button id="plus">+</button>
   <div id="menu">
-    <div class="item" onclick="addText()">🔤 Add Text</div>
-    <div class="item" onclick="addYT()">📺 Add YouTube</div>
-    <div class="item" onclick="toggleDraw()">🎨 Draw Mode</div>
+    <div class="item" onclick="addText()">Text</div>
+    <div class="item" onclick="addYT()">YouTube</div>
+    <div class="item" onclick="toggleDraw()">Draw</div>
   </div>
 </div>
 
 <script>
 
-const stage = document.getElementById("stage");
+const world = document.getElementById("world");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -109,23 +109,27 @@ resize();
 window.onresize = resize;
 
 /* CAMERA */
-let cam = { x:0, y:0, zoom:1 };
+let cam = {
+  x:0,
+  y:0,
+  zoom:1
+};
 
-/* UI MENU */
+/* UI */
 const menu = document.getElementById("menu");
 
 document.getElementById("plus").onclick = () => {
   menu.style.display = menu.style.display === "block" ? "none" : "block";
 };
 
-/* DRAW SYSTEM */
+/* DRAW MODE */
 let drawMode = false;
 
 function toggleDraw(){
   drawMode = !drawMode;
 }
 
-/* TEXT */
+/* WORLD OBJECTS */
 function addText(){
 
   const el = document.createElement("div");
@@ -133,14 +137,13 @@ function addText(){
   el.contentEditable = true;
   el.innerText = "Text";
 
-  el.style.left = "400px";
-  el.style.top = "400px";
+  el.dataset.x = cam.x;
+  el.dataset.y = cam.y;
 
+  world.appendChild(el);
   makeDraggable(el);
-  stage.appendChild(el);
 }
 
-/* YOUTUBE */
 function addYT(){
 
   let url = prompt("YouTube link:");
@@ -152,21 +155,21 @@ function addYT(){
 
   const el = document.createElement("div");
   el.className = "node";
-
-  el.style.left = "500px";
-  el.style.top = "500px";
   el.style.padding = "0";
+
+  el.dataset.x = cam.x;
+  el.dataset.y = cam.y;
 
   const iframe = document.createElement("iframe");
   iframe.src = "https://www.youtube.com/embed/" + id;
 
   el.appendChild(iframe);
 
+  world.appendChild(el);
   makeDraggable(el);
-  stage.appendChild(el);
 }
 
-/* DRAG SYSTEM */
+/* DRAG (WORLD COORDS FIXED) */
 function makeDraggable(el){
 
   let dragging = false;
@@ -195,12 +198,12 @@ function makeDraggable(el){
   });
 }
 
-/* PAN + ZOOM */
-let draggingCam = false;
+/* PAN */
+let dragging = false;
 let last = {x:0,y:0};
 
 canvas.addEventListener("mousedown",(e)=>{
-  draggingCam = true;
+  dragging = true;
   last.x = e.clientX;
   last.y = e.clientY;
 });
@@ -213,37 +216,39 @@ canvas.addEventListener("mousemove",(e)=>{
   last.x = e.clientX;
   last.y = e.clientY;
 
-  if(draggingCam){
-    cam.x -= dx;
-    cam.y -= dy;
-    stage.style.transform =
+  if(dragging){
+    cam.x += dx;
+    cam.y += dy;
+
+    world.style.transform =
       `translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`;
   }
 
   if(drawMode && e.buttons){
-    ctx.fillStyle="black";
-    ctx.fillRect(e.clientX, e.clientY, 3, 3);
+    ctx.fillStyle = "black";
+    ctx.fillRect(e.clientX, e.clientY, 2, 2);
   }
 });
 
-/* ZOOM */
+/* ZOOM (FIXED PROPERLY) */
 canvas.addEventListener("wheel",(e)=>{
   e.preventDefault();
 
   const zoomFactor = 1.1;
-  const mouseX = e.clientX;
-  const mouseY = e.clientY;
 
-  const worldX = (mouseX - cam.x) / cam.zoom;
-  const worldY = (mouseY - cam.y) / cam.zoom;
+  const mx = e.clientX;
+  const my = e.clientY;
+
+  const wx = (mx - cam.x) / cam.zoom;
+  const wy = (my - cam.y) / cam.zoom;
 
   cam.zoom *= (e.deltaY < 0) ? zoomFactor : 1/zoomFactor;
-  cam.zoom = Math.max(0.2, Math.min(5, cam.zoom));
+  cam.zoom = Math.max(0.2, Math.min(6, cam.zoom));
 
-  cam.x = mouseX - worldX * cam.zoom;
-  cam.y = mouseY - worldY * cam.zoom;
+  cam.x = mx - wx * cam.zoom;
+  cam.y = my - wy * cam.zoom;
 
-  stage.style.transform =
+  world.style.transform =
     `translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`;
 
 },{passive:false});
