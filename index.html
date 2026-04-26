@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Infinite World Canvas</title>
+<title>Clean Infinite Canvas</title>
 
 <style>
 body {
@@ -24,18 +24,6 @@ body {
   width:20000px;
   height:20000px;
   background:#f5f5f5;
-}
-
-/* RULES */
-#rules {
-  position:fixed;
-  background:#0b1b3a;
-  color:white;
-  padding:20px;
-  border-radius:12px;
-  z-index:9999;
-  text-align:center;
-  pointer-events:none; /* IMPORTANT FIX */
 }
 
 /* UI */
@@ -91,25 +79,17 @@ iframe {
 
 canvas.draw {
   position:absolute;
+  pointer-events:none;
 }
 </style>
 </head>
 
 <body>
 
-<!-- CAMERA WRAPPER -->
 <div id="camera">
   <div id="world"></div>
 </div>
 
-<!-- RULES -->
-<div id="rules">
-  <h3>Rules Hub</h3>
-  <p>Drag to move</p>
-  <p>Scroll to zoom</p>
-</div>
-
-<!-- UI -->
 <div id="ui">
   <button id="plus">+</button>
   <div id="menu">
@@ -122,7 +102,6 @@ canvas.draw {
 <script>
 const camera = document.getElementById("camera");
 const world = document.getElementById("world");
-const rules = document.getElementById("rules");
 
 /* CAMERA */
 let camX = 0;
@@ -134,13 +113,6 @@ function render(){
     `translate(${camX}px,${camY}px) scale(${scale})`;
 }
 
-/* CENTER RULES ON START */
-window.onload = () => {
-  rules.style.left = "50%";
-  rules.style.top = "50%";
-  rules.style.transform = "translate(-50%, -50%)";
-};
-
 /* MENU */
 const menu = document.getElementById("menu");
 
@@ -148,21 +120,13 @@ document.getElementById("plus").onclick = () => {
   menu.style.display = menu.style.display === "block" ? "none" : "block";
 };
 
-/* PAN SYSTEM (FIXED) */
+/* PAN */
 let dragging = false;
 let lastX = 0;
 let lastY = 0;
 
 document.addEventListener("mousedown",(e)=>{
-
-  // ignore UI + objects
-  if(
-    e.target.closest("#ui") ||
-    e.target.closest(".node") ||
-    e.target.tagName==="IFRAME" ||
-    e.target.tagName==="CANVAS" ||
-    e.target.closest("#rules")
-  ) return;
+  if(e.target.closest("#ui") || e.target.closest(".node") || e.target.tagName==="IFRAME") return;
 
   dragging = true;
   lastX = e.clientX;
@@ -187,7 +151,9 @@ document.addEventListener("mouseup",()=>dragging=false);
 document.addEventListener("wheel",(e)=>{
   e.preventDefault();
 
-  let zoom = e.deltaY > 0 ? 0.9 : 1.1;
+  const prevScale = scale;
+
+  const zoom = e.deltaY > 0 ? 0.9 : 1.1;
   scale *= zoom;
   scale = Math.max(0.2, Math.min(4, scale));
 
@@ -205,7 +171,7 @@ function addText(){
   world.appendChild(el);
 }
 
-/* YOUTUBE (DRAG FIXED) */
+/* YOUTUBE */
 function addYT(){
   let url = prompt("Paste YouTube link:");
   if(!url) return;
@@ -236,7 +202,7 @@ function addYT(){
   world.appendChild(wrapper);
 }
 
-/* DRAW (WORLD BASED) */
+/* DRAW (FIXED CURSOR ALIGNMENT) */
 let drawMode = false;
 let drawing = false;
 let canvas = null;
@@ -255,14 +221,15 @@ document.addEventListener("mousedown",(e)=>{
   const wy = (e.clientY - camY) / scale;
 
   canvas = document.createElement("canvas");
-  canvas.width = 1200;
-  canvas.height = 1200;
+  canvas.width = 2000;
+  canvas.height = 2000;
   canvas.className = "draw";
 
   canvas.style.left = wx + "px";
   canvas.style.top = wy + "px";
 
   ctx = canvas.getContext("2d");
+
   world.appendChild(canvas);
 
   drawing = true;
@@ -274,7 +241,7 @@ document.addEventListener("mousemove",(e)=>{
   const wx = (e.clientX - camX) / scale;
   const wy = (e.clientY - camY) / scale;
 
-  ctx.fillRect(wx % 1200, wy % 1200, 3, 3);
+  ctx.fillRect(wx, wy, 4, 4);
 });
 
 document.addEventListener("mouseup",()=>{
