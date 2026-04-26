@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>World Canvas Fixed</title>
+<title>World Canvas Fixed Mode System</title>
 
 <style>
 body {
@@ -19,7 +19,7 @@ canvas {
   z-index:1;
 }
 
-/* WORLD OBJECT LAYER */
+/* WORLD OBJECTS */
 #world {
   position:absolute;
   top:0;
@@ -27,15 +27,14 @@ canvas {
   z-index:2;
 }
 
-/* OBJECTS */
 .node {
   position:absolute;
   background:white;
   border:1px solid #ccc;
   border-radius:8px;
   padding:8px;
-  cursor:grab;
   user-select:none;
+  cursor:pointer;
 }
 
 iframe {
@@ -60,7 +59,6 @@ iframe {
   color:white;
   border:none;
   font-size:22px;
-  cursor:pointer;
 }
 
 #menu {
@@ -69,7 +67,6 @@ iframe {
   border:1px solid #ccc;
   border-radius:10px;
   margin-top:10px;
-  width:180px;
 }
 
 .item {
@@ -89,7 +86,6 @@ iframe {
   <button id="plus">+</button>
 
   <div id="menu">
-
     <div class="item" onclick="addText()">T</div>
     <div class="item" onclick="addYT()">📺</div>
     <div class="item" onclick="toggleDraw()">🎨 Draw</div>
@@ -113,7 +109,6 @@ iframe {
         <option value="10">Large</option>
       </select>
     </div>
-
   </div>
 </div>
 
@@ -126,16 +121,19 @@ const world = document.getElementById("world");
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-/* CAMERA (ONLY VIEW) */
+/* CAMERA */
 let cam = { x:0, y:0, zoom:1 };
 
 /* OBJECTS */
 let objects = [];
 
-/* DRAW SETTINGS */
+/* DRAW */
 let drawMode = false;
 let brushColor = "black";
 let brushSize = 2;
+
+/* EDIT MODE SYSTEM */
+let activeObject = null;
 
 /* UI */
 document.getElementById("plus").onclick = ()=>{
@@ -153,10 +151,11 @@ document.getElementById("size").onchange = e=>{
 
 function toggleDraw(){
   drawMode = !drawMode;
+  activeObject = null;
 }
 
 /* =========================
-   WORLD OBJECT SYSTEM
+   OBJECT SYSTEM
    ========================= */
 
 function createObject(el, x, y){
@@ -166,7 +165,7 @@ function createObject(el, x, y){
   objects.push(obj);
   world.appendChild(el);
 
-  enableDrag(obj);
+  enableSelectAndMove(obj);
 
   render();
 }
@@ -205,10 +204,10 @@ function addYT(){
 }
 
 /* =========================
-   FIXED DRAG (WORLD SPACE)
+   CLICK TO MOVE (EDIT MODE)
    ========================= */
 
-function enableDrag(obj){
+function enableSelectAndMove(obj){
 
   let dragging = false;
   let offsetX = 0;
@@ -218,6 +217,7 @@ function enableDrag(obj){
 
     if(drawMode) return;
 
+    activeObject = obj;
     dragging = true;
 
     const wx = cam.x + e.clientX / cam.zoom;
@@ -230,7 +230,7 @@ function enableDrag(obj){
   });
 
   document.addEventListener("mousemove",(e)=>{
-    if(!dragging) return;
+    if(!dragging || obj !== activeObject) return;
 
     const wx = cam.x + e.clientX / cam.zoom;
     const wy = cam.y + e.clientY / cam.zoom;
@@ -247,7 +247,7 @@ function enableDrag(obj){
 }
 
 /* =========================
-   RENDER OBJECTS (NO SCALE BUG)
+   RENDER WORLD OBJECTS
    ========================= */
 
 function render(){
@@ -257,7 +257,6 @@ function render(){
     o.el.style.left = (o.x - cam.x) * cam.zoom + "px";
     o.el.style.top  = (o.y - cam.y) * cam.zoom + "px";
 
-    o.el.style.transform = "none";
   }
 }
 
@@ -269,9 +268,12 @@ let draggingCam = false;
 let last = {x:0,y:0};
 
 canvas.addEventListener("mousedown",(e)=>{
+
   if(drawMode) return;
 
+  activeObject = null;
   draggingCam = true;
+
   last.x = e.clientX;
   last.y = e.clientY;
 });
@@ -294,7 +296,7 @@ canvas.addEventListener("mouseup",()=>{
 });
 
 /* =========================
-   ZOOM (FIXED GOOGLE MAP STYLE)
+   ZOOM (FIXED)
    ========================= */
 
 canvas.addEventListener("wheel",(e)=>{
@@ -317,17 +319,17 @@ canvas.addEventListener("wheel",(e)=>{
 },{passive:false});
 
 /* =========================
-   DRAWING (REAL INFINITE CANVAS)
+   DRAWING (ZOOM AWARE)
    ========================= */
 
 canvas.addEventListener("mousemove",(e)=>{
 
   if(!drawMode || !e.buttons) return;
 
+  ctx.fillStyle = brushColor;
+
   const x = (e.clientX / cam.zoom) + cam.x;
   const y = (e.clientY / cam.zoom) + cam.y;
-
-  ctx.fillStyle = brushColor;
 
   ctx.beginPath();
   ctx.arc(
