@@ -18,16 +18,17 @@ body {
   transform-origin: 0 0;
 }
 
-/* RULES */
+/* RULES (PINNED) */
 #rules {
-  position: absolute;
-  left: 0;
-  top: 0;
+  position: fixed;
+  left: 20px;
+  top: 20px;
   width: 260px;
   padding: 15px;
   border-radius: 14px;
   background: #0b1b3a;
   color: white;
+  z-index: 9999;
 }
 
 /* UI */
@@ -60,10 +61,7 @@ body {
   padding: 10px;
   cursor: pointer;
 }
-
-.item:hover {
-  background: #eee;
-}
+.item:hover { background: #eee; }
 
 /* TRENDING */
 #trending {
@@ -77,7 +75,7 @@ body {
   padding: 10px;
 }
 
-/* NODE */
+/* OBJECTS */
 .node {
   position: absolute;
   min-width: 120px;
@@ -85,116 +83,150 @@ body {
   background: white;
   border: 1px solid #ccc;
   border-radius: 8px;
+  cursor: move;
+}
+
+/* YOUTUBE */
+iframe {
+  position: absolute;
+  width: 300px;
+  height: 200px;
+  border: none;
+  cursor: move;
+}
+
+/* DRAW */
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
 </style>
 </head>
 
 <body>
 
-<div id="world">
+<div id="world"></div>
 
-  <div id="rules">
-    <h3>Rules Hub</h3>
-    <p>Spawn point</p>
-    <button onclick="addNode()">+ Add Node</button>
-  </div>
-
+<!-- RULES -->
+<div id="rules">
+  <h3>Rules Hub</h3>
+  <p>Spawn point</p>
 </div>
 
+<!-- UI -->
 <div id="ui">
   <button id="plus">+</button>
   <div id="menu">
-    <div class="item" onclick="addText()">Text</div>
+    <div class="item" onclick="addText()">🔤 Text</div>
+    <div class="item" onclick="enableDraw()">🎨 Draw</div>
+    <div class="item" onclick="addYouTube()">📺 YouTube</div>
   </div>
 </div>
 
+<!-- TRENDING -->
 <div id="trending">
   <b>🔥 Trending</b>
   <div id="list"></div>
 </div>
 
+<canvas id="draw"></canvas>
+
 <script>
 let world = document.getElementById("world");
+let canvas = document.getElementById("draw");
+let ctx = canvas.getContext("2d");
 
-let offsetX = 0;
-let offsetY = 0;
-let scale = 1;
-let dragging = false;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-let nodes = [];
+let offsetX = 0, offsetY = 0, scale = 1;
+let draggingWorld = false;
+let dragTarget = null;
+
+let drawMode = false;
 
 /* MENU */
 document.getElementById("plus").onclick = () => {
-  const m = document.getElementById("menu");
+  let m = document.getElementById("menu");
   m.style.display = m.style.display === "block" ? "none" : "block";
 };
 
-/* ADD TEXT */
-function addText(){
+/* DRAG ELEMENT */
+function makeDraggable(el) {
+  el.addEventListener("mousedown", (e) => {
+    dragTarget = el;
+    e.stopPropagation();
+  });
+}
+
+/* TEXT */
+function addText() {
   const el = document.createElement("div");
   el.className = "node";
   el.contentEditable = true;
   el.innerText = "Edit me";
-  el.style.left = "500px";
-  el.style.top = "400px";
+  el.style.left = "400px";
+  el.style.top = "300px";
   world.appendChild(el);
+  makeDraggable(el);
 }
 
-/* ADD NODE */
-function addNode(){
-  const n = {
-    x: Math.random()*3000,
-    y: Math.random()*3000,
-    text: "Node",
-    score: Math.floor(Math.random()*100)
-  };
+/* YOUTUBE */
+function addYouTube() {
+  let url = prompt("Paste YouTube link:");
+  if (!url) return;
 
-  nodes.push(n);
+  let id = url.split("v=")[1];
+  if (!id) return alert("Invalid link");
 
-  const el = document.createElement("div");
-  el.className = "node";
-  el.innerText = n.text;
-  el.style.left = n.x+"px";
-  el.style.top = n.y+"px";
+  const iframe = document.createElement("iframe");
+  iframe.src = "https://www.youtube.com/embed/" + id;
+  iframe.style.left = "500px";
+  iframe.style.top = "300px";
 
-  world.appendChild(el);
-
-  updateTrending();
+  world.appendChild(iframe);
+  makeDraggable(iframe);
 }
 
-/* TRENDING */
-function updateTrending(){
-  const sorted = [...nodes].sort((a,b)=>b.score-a.score).slice(0,5);
-
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  sorted.forEach(n=>{
-    const el = document.createElement("div");
-    el.className = "item";
-    el.innerText = "🔥 "+n.text;
-
-    el.onclick = ()=>{
-      jump(n.x,n.y);
-    };
-
-    list.appendChild(el);
-  });
+/* DRAW */
+function enableDraw() {
+  drawMode = !drawMode;
+  canvas.style.pointerEvents = drawMode ? "auto" : "none";
 }
 
-/* CAMERA */
-function jump(x,y){
-  offsetX = -x*scale + window.innerWidth/2;
-  offsetY = -y*scale + window.innerHeight/2;
-  update();
-}
+let drawing = false;
 
-/* PAN */
-document.addEventListener("mousedown", ()=>dragging=true);
-document.addEventListener("mouseup", ()=>dragging=false);
+canvas.addEventListener("mousedown", () => {
+  if (!drawMode) return;
+  drawing = true;
+});
 
-document.addEventListener("mousemove",(e)=>{
-  if(dragging){
+canvas.addEventListener("mouseup", () => drawing = false);
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!drawing) return;
+  ctx.fillRect(e.clientX, e.clientY, 2, 2);
+});
+
+/* WORLD PAN */
+document.addEventListener("mousedown", () => draggingWorld = true);
+document.addEventListener("mouseup", () => {
+  draggingWorld = false;
+  dragTarget = null;
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (dragTarget) {
+    dragTarget.style.left =
+      (parseFloat(dragTarget.style.left) + e.movementX) + "px";
+    dragTarget.style.top =
+      (parseFloat(dragTarget.style.top) + e.movementY) + "px";
+    return;
+  }
+
+  if (draggingWorld && !drawMode) {
     offsetX += e.movementX;
     offsetY += e.movementY;
     update();
@@ -202,23 +234,14 @@ document.addEventListener("mousemove",(e)=>{
 });
 
 /* ZOOM */
-document.addEventListener("wheel",(e)=>{
+document.addEventListener("wheel", (e) => {
   e.preventDefault();
-
-  const old = scale;
-  scale -= e.deltaY*0.001;
-  scale = Math.min(3, Math.max(0.3, scale));
-
-  const mx = e.clientX;
-  const my = e.clientY;
-
-  offsetX = mx - (mx-offsetX)*(scale/old);
-  offsetY = my - (my-offsetY)*(scale/old);
-
+  scale -= e.deltaY * 0.001;
+  scale = Math.max(0.3, Math.min(3, scale));
   update();
-},{passive:false});
+}, { passive:false });
 
-function update(){
+function update() {
   world.style.transform =
     `translate(${offsetX}px,${offsetY}px) scale(${scale})`;
 }
