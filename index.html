@@ -150,6 +150,37 @@ iframe {
   z-index:9999;
 }
 
+#userInfo {
+  position:fixed;
+  top:20px;
+  left:20px;
+  background:white;
+  padding:12px 15px;
+  border-radius:8px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  font-size:14px;
+  z-index:9999;
+}
+
+#userInfo strong {
+  color:#0b1b3a;
+}
+
+#logoutBtn {
+  background:#e74c3c;
+  color:white;
+  border:none;
+  padding:6px 12px;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:12px;
+  margin-left:10px;
+}
+
+#logoutBtn:hover {
+  background:#c0392b;
+}
+
 #plus {
   width:50px;
   height:50px;
@@ -293,27 +324,6 @@ button:hover {
   background:#b45309;
 }
 
-/* WEATHER SEARCH */
-#weatherSearch {
-  padding:10px;
-  border-bottom:1px solid #eee;
-}
-
-#weatherSearch input {
-  width:100%;
-  padding:6px;
-  border:1px solid #ccc;
-  border-radius:4px;
-  box-sizing:border-box;
-  font-size:12px;
-}
-
-#weatherSearch button {
-  width:100%;
-  margin-top:5px;
-  padding:6px;
-}
-
 </style>
 </head>
 
@@ -323,6 +333,13 @@ button:hover {
 <div id="world"></div>
 
 <div id="drawStatus">🖌️ Drawing Mode ON</div>
+
+<!-- USER INFO -->
+<div id="userInfo">
+  <span id="username"></span>
+  <span id="userCity"></span>
+  <button id="logoutBtn" onclick="logout()">Logout</button>
+</div>
 
 <!-- RULES STICKY NOTE -->
 <div id="rulesOverlay">
@@ -378,6 +395,21 @@ button:hover {
 </div>
 
 <script>
+
+// Check if user is logged in
+let currentUser=JSON.parse(localStorage.getItem("currentUser"));
+if(!currentUser){
+  window.location.href="login.html";
+}
+
+// Display user info
+document.getElementById("username").textContent="👤 "+currentUser.username;
+document.getElementById("userCity").textContent="🌍 "+currentUser.city;
+
+function logout(){
+  localStorage.removeItem("currentUser");
+  window.location.href="login.html";
+}
 
 const canvas=document.getElementById("canvas");
 const ctx=canvas.getContext("2d");
@@ -541,7 +573,7 @@ function addYT(){
 /* WEATHER WIDGET */
 function addWeather(){
   if(!currentWeather.temp){
-    fetchWeather("London");
+    fetchWeather(currentUser.city);
     return;
   }
   
@@ -591,7 +623,7 @@ function fetchWeather(city){
     .then(r=>r.json())
     .then(data=>{
       if(data.cod!==200){
-        alert("City not found");
+        alert("Could not fetch weather for "+city);
         return;
       }
       currentWeather={
@@ -784,8 +816,8 @@ function draw(){
 // Initial draw
 draw();
 
-// Load default weather
-fetchWeather("London");
+// Load user's city weather
+fetchWeather(currentUser.city);
 
 </script>
 
