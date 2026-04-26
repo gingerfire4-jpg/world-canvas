@@ -39,6 +39,12 @@ canvas {
   min-width:100px;
 }
 
+.node.transparent {
+  background:rgba(255,255,255,0.1);
+  border:2px dashed #999;
+  backdrop-filter:blur(2px);
+}
+
 .node:hover {
   border-color:#0b1b3a;
   box-shadow:0 4px 12px rgba(0,0,0,0.2);
@@ -93,6 +99,50 @@ iframe {
   display:block;
 }
 
+/* WEATHER WIDGET */
+.weather-widget {
+  background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color:white;
+  padding:15px;
+  border-radius:12px;
+  min-width:280px;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.weather-widget h3 {
+  margin:0 0 10px 0;
+  font-size:16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.weather-temp {
+  font-size:24px;
+  font-weight:bold;
+}
+
+.weather-desc {
+  opacity:0.9;
+  margin-bottom:10px;
+}
+
+.weather-info {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  font-size:12px;
+  background:rgba(0,0,0,0.2);
+  padding:8px;
+  border-radius:6px;
+}
+
+.weather-info-item {
+  display:flex;
+  justify-content:space-between;
+}
+
 #ui {
   position:fixed;
   top:20px;
@@ -128,6 +178,8 @@ iframe {
   border-radius:10px;
   margin-top:10px;
   box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  max-height:500px;
+  overflow-y:auto;
 }
 
 .item {
@@ -241,6 +293,27 @@ button:hover {
   background:#b45309;
 }
 
+/* WEATHER SEARCH */
+#weatherSearch {
+  padding:10px;
+  border-bottom:1px solid #eee;
+}
+
+#weatherSearch input {
+  width:100%;
+  padding:6px;
+  border:1px solid #ccc;
+  border-radius:4px;
+  box-sizing:border-box;
+  font-size:12px;
+}
+
+#weatherSearch button {
+  width:100%;
+  margin-top:5px;
+  padding:6px;
+}
+
 </style>
 </head>
 
@@ -272,6 +345,7 @@ button:hover {
   <div id="menu">
     <div class="item" onclick="addText()">📝 Text Box</div>
     <div class="item" onclick="addYT()">▶️ YouTube Video</div>
+    <div class="item" onclick="addWeather()">🌤️ Weather Widget</div>
     <div class="item" onclick="toggleDraw()">🖌️ Draw</div>
 
     <hr style="margin:5px 0;">
@@ -342,6 +416,9 @@ let brushSize=2;
 /* SELECTED OBJECT */
 let selected=null;
 
+/* WEATHER DATA */
+let currentWeather={};
+
 /* UI */
 document.getElementById("plus").onclick=()=>{
   let m=document.getElementById("menu");
@@ -411,13 +488,15 @@ function clearAll(){
   }
 }
 
-/* TEXT */
+/* TEXT - TRANSPARENT */
 function addText(){
   let el=document.createElement("div");
-  el.className="node";
+  el.className="node transparent";
   el.contentEditable=true;
   el.style.maxWidth="400px";
   el.style.whiteSpace="pre-wrap";
+  el.style.color="#000";
+  el.style.minHeight="40px";
   el.innerHTML="<br>";
   el.onclick=e=>e.stopPropagation();
   create(el,cam.x+200,cam.y+200);
@@ -457,6 +536,78 @@ function addYT(){
   el.appendChild(iframe);
 
   create(el,cam.x+200,cam.y+200);
+}
+
+/* WEATHER WIDGET */
+function addWeather(){
+  if(!currentWeather.temp){
+    fetchWeather("London");
+    return;
+  }
+  
+  let el=document.createElement("div");
+  el.className="node weather-widget";
+  el.style.padding="0";
+  el.style.background="linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+  el.style.color="white";
+  el.style.minWidth="280px";
+  el.style.borderRadius="12px";
+  
+  let city=currentWeather.city || "Unknown";
+  let temp=Math.round(currentWeather.temp) || "N/A";
+  let desc=currentWeather.desc || "No data";
+  let humidity=currentWeather.humidity || "N/A";
+  let wind=currentWeather.wind || "N/A";
+  let feels=Math.round(currentWeather.feels) || "N/A";
+  
+  el.innerHTML=`
+    <div style="padding:15px;">
+      <h3 style="margin:0 0 10px 0; font-size:16px; display:flex; justify-content:space-between;">
+        <span>${city}</span>
+        <span style="font-size:20px;">🌤️</span>
+      </h3>
+      <div style="font-size:24px; font-weight:bold; margin-bottom:8px;">${temp}°C</div>
+      <div style="opacity:0.9; margin-bottom:10px; font-size:12px;">${desc}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px; background:rgba(0,0,0,0.2); padding:8px; border-radius:6px;">
+        <div><strong>Feels:</strong> ${feels}°C</div>
+        <div><strong>Wind:</strong> ${wind}m/s</div>
+        <div><strong>Humidity:</strong> ${humidity}%</div>
+      </div>
+    </div>
+  `;
+  
+  el.onclick=e=>e.stopPropagation();
+  create(el,cam.x+200,cam.y+200);
+  document.getElementById("menu").style.display="none";
+  document.getElementById("plus").classList.remove("active");
+}
+
+/* FETCH WEATHER */
+function fetchWeather(city){
+  let apiKey="b6fd43b89eb8d2ca34a4e9e68f29739f";
+  let url=`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+  
+  fetch(url)
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.cod!==200){
+        alert("City not found");
+        return;
+      }
+      currentWeather={
+        city:data.name,
+        temp:data.main.temp,
+        feels:data.main.feels_like,
+        desc:data.weather[0].main,
+        humidity:data.main.humidity,
+        wind:data.wind.speed
+      };
+      addWeather();
+    })
+    .catch(e=>{
+      alert("Error fetching weather");
+      console.error(e);
+    });
 }
 
 /* =========================
@@ -632,6 +783,9 @@ function draw(){
 
 // Initial draw
 draw();
+
+// Load default weather
+fetchWeather("London");
 
 </script>
 
