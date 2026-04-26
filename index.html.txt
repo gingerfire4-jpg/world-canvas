@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>World Canvas Test</title>
+</head>
+<body style="margin:0; font-family:Arial;">
+
+<h1>🌍 World Canvas is running</h1>
+<p>If you see this, GitHub Pages will work.</p>
+
+</body>
+</html>
