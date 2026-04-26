@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>World Canvas FINAL FIX</title>
+<title>World Canvas</title>
 
 <style>
 body {
@@ -82,13 +82,8 @@ iframe {
   cursor:grab;
 }
 
-/* DRAW */
-canvas {
-  position:fixed;
-  top:0;
-  left:0;
-  pointer-events:none;
-  z-index:500;
+canvas.draw {
+  position:absolute;
 }
 </style>
 </head>
@@ -99,7 +94,7 @@ canvas {
 
 <div id="rules">
   <h3>Rules Hub</h3>
-  <p>Drag empty space to move</p>
+  <p>Drag to move</p>
   <p>Scroll to zoom</p>
 </div>
 
@@ -111,8 +106,6 @@ canvas {
     <div class="item" onclick="createYT()">📺 YouTube</div>
   </div>
 </div>
-
-<canvas id="draw"></canvas>
 
 <script>
 const world = document.getElementById("world");
@@ -134,31 +127,37 @@ plus.onclick = () => {
   menu.style.display = menu.style.display === "block" ? "none" : "block";
 };
 
-/* DRAGGING */
+/* DRAG SYSTEM */
+let dragEl = null;
 let draggingWorld = false;
 let lastX = 0;
 let lastY = 0;
-let dragEl = null;
 
 document.addEventListener("mousedown", (e) => {
+  if (drawMode) return;
+
   if (e.target.classList.contains("node") || e.target.tagName === "IFRAME") {
     dragEl = e.target;
   } else {
     draggingWorld = true;
-    lastX = e.clientX;
-    lastY = e.clientY;
   }
+
+  lastX = e.clientX;
+  lastY = e.clientY;
 });
 
 document.addEventListener("mousemove", (e) => {
+  let dx = e.clientX - lastX;
+  let dy = e.clientY - lastY;
+
   if (dragEl) {
-    dragEl.style.left = (parseFloat(dragEl.style.left || 0) + (e.clientX - lastX)) + "px";
-    dragEl.style.top  = (parseFloat(dragEl.style.top || 0) + (e.clientY - lastY)) + "px";
+    dragEl.style.left = (parseFloat(dragEl.style.left || 0) + dx) + "px";
+    dragEl.style.top  = (parseFloat(dragEl.style.top || 0) + dy) + "px";
   }
 
   if (draggingWorld) {
-    x += e.clientX - lastX;
-    y += e.clientY - lastY;
+    x += dx;
+    y += dy;
     update();
   }
 
@@ -167,8 +166,8 @@ document.addEventListener("mousemove", (e) => {
 });
 
 document.addEventListener("mouseup", () => {
-  draggingWorld = false;
   dragEl = null;
+  draggingWorld = false;
 });
 
 /* ZOOM */
@@ -219,29 +218,54 @@ function createYT() {
   world.appendChild(iframe);
 }
 
-/* DRAW */
-let canvas = document.getElementById("draw");
-let ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let drawing = false;
+/* DRAW (WORLD-BASED) */
 let drawMode = false;
+let drawing = false;
+let currentCanvas = null;
+let ctx = null;
 
 function toggleDraw() {
   drawMode = !drawMode;
-  canvas.style.pointerEvents = drawMode ? "auto" : "none";
   alert("Draw: " + (drawMode ? "ON" : "OFF"));
 }
 
-canvas.addEventListener("mousedown", () => { if(drawMode) drawing = true; });
-canvas.addEventListener("mouseup", () => drawing = false);
+document.addEventListener("mousedown", (e) => {
+  if (!drawMode) return;
 
-canvas.addEventListener("mousemove", (e) => {
-  if (drawing) {
-    ctx.fillRect(e.clientX, e.clientY, 3, 3);
-  }
+  const rect = world.getBoundingClientRect();
+
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  currentCanvas = document.createElement("canvas");
+  currentCanvas.width = 400;
+  currentCanvas.height = 400;
+  currentCanvas.className = "draw";
+
+  currentCanvas.style.left = x + "px";
+  currentCanvas.style.top = y + "px";
+
+  world.appendChild(currentCanvas);
+
+  ctx = currentCanvas.getContext("2d");
+  drawing = true;
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (!drawing || !ctx) return;
+
+  const rect = currentCanvas.getBoundingClientRect();
+
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  ctx.fillRect(x, y, 3, 3);
+});
+
+document.addEventListener("mouseup", () => {
+  drawing = false;
+  currentCanvas = null;
+  ctx = null;
 });
 </script>
 
