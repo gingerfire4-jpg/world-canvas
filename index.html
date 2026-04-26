@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>World Canvas</title>
+<title>Layered Canvas Fix</title>
 
 <style>
 body {
@@ -11,15 +10,16 @@ body {
   font-family:Arial;
 }
 
-/* WORLD LAYER */
+/* WORLD CONTAINER (OBJECTS ONLY) */
 #world {
   position:absolute;
   top:0;
   left:0;
   transform-origin:0 0;
+  z-index:2;
 }
 
-/* DRAW CANVAS */
+/* DRAW LAYER (BACKGROUND ONLY) */
 canvas {
   position:fixed;
   top:0;
@@ -32,7 +32,7 @@ canvas {
   position:fixed;
   top:20px;
   right:20px;
-  z-index:99999;
+  z-index:9999;
 }
 
 #plus {
@@ -43,22 +43,7 @@ canvas {
   color:white;
   border:none;
   font-size:22px;
-  cursor:pointer;
 }
-
-#menu {
-  display:none;
-  margin-top:10px;
-  background:white;
-  border-radius:10px;
-  border:1px solid #ccc;
-}
-
-.item {
-  padding:10px;
-  cursor:pointer;
-}
-.item:hover { background:#eee; }
 
 /* OBJECTS */
 .node {
@@ -80,40 +65,19 @@ iframe {
 
 <body>
 
-<!-- WORLD -->
-<div id="world"></div>
-
-<!-- DRAW -->
+<!-- DRAW LAYER -->
 <canvas id="canvas"></canvas>
+
+<!-- OBJECT LAYER -->
+<div id="world"></div>
 
 <!-- UI -->
 <div id="ui">
   <button id="plus">+</button>
-
   <div id="menu">
-    <div class="item" onclick="addText()">Add Text</div>
-    <div class="item" onclick="addYT()">Add YouTube</div>
-    <div class="item" onclick="toggleDraw()">Draw Mode</div>
-
-    <hr>
-
-    <div class="item">
-      Color:
-      <select id="color">
-        <option value="black">Black</option>
-        <option value="red">Red</option>
-        <option value="green">Green</option>
-      </select>
-    </div>
-
-    <div class="item">
-      Size:
-      <select id="size">
-        <option value="2">Small</option>
-        <option value="5">Medium</option>
-        <option value="10">Large</option>
-      </select>
-    </div>
+    <button onclick="addText()">Text</button>
+    <button onclick="addYT()">YouTube</button>
+    <button onclick="toggleDraw()">Draw</button>
   </div>
 </div>
 
@@ -135,73 +99,24 @@ function applyCamera(){
 }
 
 /* UI */
-const menu = document.getElementById("menu");
-
 document.getElementById("plus").onclick = () => {
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
+  let m = document.getElementById("menu");
+  m.style.display = m.style.display === "block" ? "none" : "block";
 };
 
-/* DRAW SETTINGS */
+/* DRAW MODE */
 let drawMode = false;
-let color = "black";
-let size = 2;
-
-document.getElementById("color").onchange = e=>{
-  color = e.target.value;
-};
-
-document.getElementById("size").onchange = e=>{
-  size = +e.target.value;
-};
+let brushColor = "black";
+let brushSize = 3;
 
 function toggleDraw(){
   drawMode = !drawMode;
 }
 
-/* TEXT */
-function addText(){
+/* =========================
+   OBJECTS (TEXT + YOUTUBE)
+   ========================= */
 
-  const el = document.createElement("div");
-  el.className = "node";
-  el.contentEditable = true;
-  el.innerText = "Text";
-
-  el.style.left = "400px";
-  el.style.top = "400px";
-
-  makeDraggable(el);
-
-  world.appendChild(el);
-}
-
-/* YOUTUBE */
-function addYT(){
-
-  let url = prompt("YouTube link:");
-  if(!url) return;
-
-  let id = url.includes("v=")
-    ? url.split("v=")[1].split("&")[0]
-    : url.split("youtu.be/")[1];
-
-  const el = document.createElement("div");
-  el.className = "node";
-
-  el.style.left = "500px";
-  el.style.top = "500px";
-  el.style.padding = "0";
-
-  const iframe = document.createElement("iframe");
-  iframe.src = "https://www.youtube.com/embed/" + id;
-
-  el.appendChild(iframe);
-
-  makeDraggable(el);
-
-  world.appendChild(el);
-}
-
-/* DRAG SYSTEM (FIXED) */
 function makeDraggable(el){
 
   let dragging = false;
@@ -210,7 +125,9 @@ function makeDraggable(el){
 
   el.addEventListener("mousedown",(e)=>{
 
-    if(el.isContentEditable) return;
+    // IMPORTANT FIX:
+    // only drag objects when NOT drawing
+    if(drawMode) return;
 
     dragging = true;
 
@@ -232,11 +149,70 @@ function makeDraggable(el){
   });
 }
 
-/* PAN */
+/* TEXT */
+function addText(){
+
+  const el = document.createElement("div");
+  el.className = "node";
+  el.contentEditable = true;
+  el.innerText = "Text";
+
+  el.style.left = "400px";
+  el.style.top = "400px";
+
+  world.appendChild(el);
+  makeDraggable(el);
+}
+
+/* YOUTUBE */
+function addYT(){
+
+  let url = prompt("YouTube link:");
+  if(!url) return;
+
+  let id = url.includes("v=")
+    ? url.split("v=")[1].split("&")[0]
+    : url.split("youtu.be/")[1];
+
+  const el = document.createElement("div");
+  el.className = "node";
+  el.style.left = "500px";
+  el.style.top = "500px";
+  el.style.padding = "0";
+
+  const iframe = document.createElement("iframe");
+  iframe.src = "https://www.youtube.com/embed/" + id;
+
+  el.appendChild(iframe);
+
+  world.appendChild(el);
+  makeDraggable(el);
+}
+
+/* =========================
+   DRAWING (BACKGROUND ONLY)
+   ========================= */
+
+canvas.addEventListener("mousemove",(e)=>{
+
+  if(!drawMode || !e.buttons) return;
+
+  ctx.fillStyle = brushColor;
+  ctx.beginPath();
+  ctx.arc(e.clientX, e.clientY, brushSize, 0, Math.PI*2);
+  ctx.fill();
+});
+
+/* =========================
+   CAMERA MOVEMENT
+   ========================= */
+
 let draggingCam = false;
 let last = {x:0,y:0};
 
 canvas.addEventListener("mousedown",(e)=>{
+  if(drawMode) return; // IMPORTANT FIX
+
   draggingCam = true;
   last.x = e.clientX;
   last.y = e.clientY;
@@ -255,20 +231,16 @@ canvas.addEventListener("mousemove",(e)=>{
     cam.y += dy;
     applyCamera();
   }
-
-  if(drawMode && e.buttons){
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(e.clientX, e.clientY, size, 0, Math.PI*2);
-    ctx.fill();
-  }
 });
 
 canvas.addEventListener("mouseup",()=>{
   draggingCam = false;
 });
 
-/* ZOOM (FIXED WORLD ZOOM) */
+/* =========================
+   ZOOM (FIXED)
+   ========================= */
+
 canvas.addEventListener("wheel",(e)=>{
   e.preventDefault();
 
