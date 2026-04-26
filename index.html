@@ -9,7 +9,7 @@ body {
   margin:0;
   overflow:hidden;
   font-family:Arial;
-  background:#000;
+  background:#f5f5f5;
 }
 
 canvas {
@@ -17,6 +17,7 @@ canvas {
   top:0;
   left:0;
   z-index:1;
+  background:white;
 }
 
 #world {
@@ -29,22 +30,23 @@ canvas {
 .node {
   position:absolute;
   background:white;
-  border:2px solid #666;
+  border:2px solid #ccc;
   border-radius:8px;
   padding:8px;
   user-select:none;
   cursor:grab;
-  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
   min-width:100px;
 }
 
 .node:hover {
   border-color:#0b1b3a;
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
 }
 
 .node.selected {
   border-color:#0b1b3a;
-  box-shadow:0 0 8px #0b1b3a;
+  box-shadow:0 0 8px rgba(11,27,58,0.5);
 }
 
 .node-controls {
@@ -125,7 +127,7 @@ iframe {
   border:1px solid #ccc;
   border-radius:10px;
   margin-top:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
 }
 
 .item {
@@ -180,6 +182,65 @@ button:hover {
   background:#0d2447;
 }
 
+/* STICKY NOTE MODAL */
+#rulesOverlay {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:10000;
+}
+
+#stickyNote {
+  background:#fef3c7;
+  border:2px solid #f59e0b;
+  border-radius:4px;
+  padding:20px;
+  width:300px;
+  box-shadow:0 8px 16px rgba(0,0,0,0.2), -3px 3px 0px rgba(0,0,0,0.1);
+  transform:rotate(-2deg);
+  text-align:center;
+}
+
+#stickyNote h2 {
+  margin:0 0 15px 0;
+  color:#d97706;
+  font-size:18px;
+}
+
+#stickyNote ul {
+  list-style:none;
+  padding:0;
+  margin:0 0 15px 0;
+  text-align:left;
+  font-size:13px;
+  color:#333;
+}
+
+#stickyNote li {
+  padding:5px 0;
+  border-bottom:1px solid #fed7aa;
+}
+
+#stickyNote li:last-child {
+  border-bottom:none;
+}
+
+#stickyNote button {
+  background:#d97706;
+  padding:8px 20px;
+  font-size:14px;
+}
+
+#stickyNote button:hover {
+  background:#b45309;
+}
+
 </style>
 </head>
 
@@ -189,6 +250,21 @@ button:hover {
 <div id="world"></div>
 
 <div id="drawStatus">🖌️ Drawing Mode ON</div>
+
+<!-- RULES STICKY NOTE -->
+<div id="rulesOverlay">
+  <div id="stickyNote">
+    <h2>📋 Rules</h2>
+    <ul>
+      <li>❌ No nude photos</li>
+      <li>❌ No rude drawings</li>
+      <li>❌ No offensive content</li>
+      <li>✅ Be respectful & creative</li>
+      <li>✅ Enjoy & collaborate</li>
+    </ul>
+    <button onclick="closeStickyNote()">Got it!</button>
+  </div>
+</div>
 
 <div id="ui">
   <button id="plus">+</button>
@@ -203,11 +279,11 @@ button:hover {
     <div class="item">
       Color:
       <select id="color" style="margin-left:5px;">
-        <option value="white">White</option>
+        <option value="black">Black</option>
         <option value="red">Red</option>
-        <option value="yellow">Yellow</option>
-        <option value="lime">Lime</option>
-        <option value="cyan">Cyan</option>
+        <option value="blue">Blue</option>
+        <option value="green">Green</option>
+        <option value="purple">Purple</option>
       </select>
     </div>
 
@@ -243,6 +319,10 @@ window.addEventListener('resize',()=>{
   draw();
 });
 
+function closeStickyNote(){
+  document.getElementById("rulesOverlay").style.display="none";
+}
+
 /* CAMERA */
 let cam={x:0,y:0,zoom:1};
 
@@ -256,7 +336,7 @@ let current=null;
 
 /* DRAW SETTINGS */
 let drawMode=false;
-let brushColor="white";
+let brushColor="black";
 let brushSize=2;
 
 /* SELECTED OBJECT */
@@ -492,7 +572,7 @@ canvas.addEventListener("wheel",(e)=>{
 },{passive:false});
 
 /* =========================
-   DRAWING (FIXED WORLD SPACE)
+   DRAWING (SMOOTH LINES)
    ========================= */
 
 canvas.addEventListener("mousedown",(e)=>{
@@ -500,6 +580,12 @@ canvas.addEventListener("mousedown",(e)=>{
 
   current=[];
   strokes.push(current);
+  
+  let x=cam.x+e.clientX/cam.zoom;
+  let y=cam.y+e.clientY/cam.zoom;
+  current.push({x,y});
+  
+  draw();
 });
 
 canvas.addEventListener("mousemove",(e)=>{
@@ -513,28 +599,34 @@ canvas.addEventListener("mousemove",(e)=>{
   draw();
 });
 
-/* DRAW ALL STROKES */
+/* DRAW ALL STROKES (SMOOTH LINES) */
 function draw(){
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
-
+  ctx.strokeStyle=brushColor;
   ctx.fillStyle=brushColor;
+  ctx.lineWidth=brushSize*2*cam.zoom;
   ctx.lineCap="round";
   ctx.lineJoin="round";
 
   for(let s of strokes){
-    for(let i=0;i<s.length;i++){
+    if(s.length<2) continue;
+    
+    // Draw smooth line
+    ctx.beginPath();
+    ctx.moveTo(
+      (s[0].x-cam.x)*cam.zoom,
+      (s[0].y-cam.y)*cam.zoom
+    );
+    
+    for(let i=1;i<s.length;i++){
       let p=s[i];
-      
-      ctx.beginPath();
-      ctx.arc(
+      ctx.lineTo(
         (p.x-cam.x)*cam.zoom,
-        (p.y-cam.y)*cam.zoom,
-        brushSize*cam.zoom,
-        0,Math.PI*2
+        (p.y-cam.y)*cam.zoom
       );
-      ctx.fill();
     }
+    ctx.stroke();
   }
 }
 
