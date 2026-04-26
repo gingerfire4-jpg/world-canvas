@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Clean Infinite Canvas</title>
+<title>Stable Infinite Canvas</title>
 
 <style>
 body {
@@ -121,39 +121,109 @@ document.getElementById("plus").onclick = () => {
 };
 
 /* PAN */
-let dragging = false;
+let draggingCamera = false;
+let dragTarget = null;
 let lastX = 0;
 let lastY = 0;
 
+/* IMPORTANT: global pointer mode */
+let drawMode = false;
+let drawing = false;
+let canvas = null;
+let ctx = null;
+
+/* POINTER DOWN */
 document.addEventListener("mousedown",(e)=>{
-  if(e.target.closest("#ui") || e.target.closest(".node") || e.target.tagName==="IFRAME") return;
 
-  dragging = true;
   lastX = e.clientX;
   lastY = e.clientY;
+
+  /* UI ignored */
+  if(e.target.closest("#ui")) return;
+
+  /* TEXT / VIDEO DRAG */
+  if(e.target.closest(".node") || e.target.tagName === "IFRAME") {
+    dragTarget = e.target.closest(".node") || e.target;
+    return;
+  }
+
+  /* DRAW MODE */
+  if(drawMode) {
+
+    const wx = (e.clientX - camX) / scale;
+    const wy = (e.clientY - camY) / scale;
+
+    canvas = document.createElement("canvas");
+    canvas.width = 2000;
+    canvas.height = 2000;
+    canvas.className = "draw";
+
+    canvas.style.left = wx + "px";
+    canvas.style.top = wy + "px";
+
+    ctx = canvas.getContext("2d");
+    world.appendChild(canvas);
+
+    drawing = true;
+    return;
+  }
+
+  /* CAMERA DRAG */
+  draggingCamera = true;
 });
 
+/* MOVE */
 document.addEventListener("mousemove",(e)=>{
-  if(!dragging) return;
 
-  camX += e.clientX - lastX;
-  camY += e.clientY - lastY;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
 
   lastX = e.clientX;
   lastY = e.clientY;
 
-  render();
+  /* MOVE TEXT / VIDEO */
+  if(dragTarget) {
+    dragTarget.style.left =
+      (parseFloat(dragTarget.style.left || 0) + dx / scale) + "px";
+
+    dragTarget.style.top =
+      (parseFloat(dragTarget.style.top || 0) + dy / scale) + "px";
+
+    return;
+  }
+
+  /* DRAW */
+  if(drawing && ctx) {
+    const wx = (e.clientX - camX) / scale;
+    const wy = (e.clientY - camY) / scale;
+
+    ctx.fillRect(wx, wy, 4, 4);
+    return;
+  }
+
+  /* CAMERA */
+  if(draggingCamera) {
+    camX += dx;
+    camY += dy;
+    render();
+  }
 });
 
-document.addEventListener("mouseup",()=>dragging=false);
+/* RELEASE */
+document.addEventListener("mouseup",()=>{
+
+  draggingCamera = false;
+  dragTarget = null;
+  drawing = false;
+  canvas = null;
+  ctx = null;
+});
 
 /* ZOOM */
 document.addEventListener("wheel",(e)=>{
   e.preventDefault();
 
-  const prevScale = scale;
-
-  const zoom = e.deltaY > 0 ? 0.9 : 1.1;
+  let zoom = e.deltaY > 0 ? 0.9 : 1.1;
   scale *= zoom;
   scale = Math.max(0.2, Math.min(4, scale));
 
@@ -202,53 +272,11 @@ function addYT(){
   world.appendChild(wrapper);
 }
 
-/* DRAW (FIXED CURSOR ALIGNMENT) */
-let drawMode = false;
-let drawing = false;
-let canvas = null;
-let ctx = null;
-
+/* DRAW MODE TOGGLE */
 function toggleDraw(){
   drawMode = !drawMode;
   alert("Draw: " + (drawMode ? "ON" : "OFF"));
 }
-
-document.addEventListener("mousedown",(e)=>{
-  if(!drawMode) return;
-  if(e.target.closest("#ui")) return;
-
-  const wx = (e.clientX - camX) / scale;
-  const wy = (e.clientY - camY) / scale;
-
-  canvas = document.createElement("canvas");
-  canvas.width = 2000;
-  canvas.height = 2000;
-  canvas.className = "draw";
-
-  canvas.style.left = wx + "px";
-  canvas.style.top = wy + "px";
-
-  ctx = canvas.getContext("2d");
-
-  world.appendChild(canvas);
-
-  drawing = true;
-});
-
-document.addEventListener("mousemove",(e)=>{
-  if(!drawing || !ctx) return;
-
-  const wx = (e.clientX - camX) / scale;
-  const wy = (e.clientY - camY) / scale;
-
-  ctx.fillRect(wx, wy, 4, 4);
-});
-
-document.addEventListener("mouseup",()=>{
-  drawing = false;
-  canvas = null;
-  ctx = null;
-});
 </script>
 
 </body>
