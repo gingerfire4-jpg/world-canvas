@@ -1,12 +1,228 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>World Canvas Test</title>
-</head>
-<body style="margin:0; font-family:Arial;">
+<title>World Canvas</title>
 
-<h1>🌍 World Canvas is running</h1>
-<p>If you see this, GitHub Pages will work.</p>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: Arial;
+}
+
+/* WORLD */
+#world {
+  position: absolute;
+  width: 10000px;
+  height: 10000px;
+  transform-origin: 0 0;
+}
+
+/* RULES */
+#rules {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 260px;
+  padding: 15px;
+  border-radius: 14px;
+  background: #0b1b3a;
+  color: white;
+}
+
+/* UI */
+#ui {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
+
+#plus {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: none;
+  background: #0b1b3a;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+#menu {
+  display: none;
+  margin-top: 10px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
+.item {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: #eee;
+}
+
+/* TRENDING */
+#trending {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  width: 220px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* NODE */
+.node {
+  position: absolute;
+  min-width: 120px;
+  padding: 8px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="world">
+
+  <div id="rules">
+    <h3>Rules Hub</h3>
+    <p>Spawn point</p>
+    <button onclick="addNode()">+ Add Node</button>
+  </div>
+
+</div>
+
+<div id="ui">
+  <button id="plus">+</button>
+  <div id="menu">
+    <div class="item" onclick="addText()">Text</div>
+  </div>
+</div>
+
+<div id="trending">
+  <b>🔥 Trending</b>
+  <div id="list"></div>
+</div>
+
+<script>
+let world = document.getElementById("world");
+
+let offsetX = 0;
+let offsetY = 0;
+let scale = 1;
+let dragging = false;
+
+let nodes = [];
+
+/* MENU */
+document.getElementById("plus").onclick = () => {
+  const m = document.getElementById("menu");
+  m.style.display = m.style.display === "block" ? "none" : "block";
+};
+
+/* ADD TEXT */
+function addText(){
+  const el = document.createElement("div");
+  el.className = "node";
+  el.contentEditable = true;
+  el.innerText = "Edit me";
+  el.style.left = "500px";
+  el.style.top = "400px";
+  world.appendChild(el);
+}
+
+/* ADD NODE */
+function addNode(){
+  const n = {
+    x: Math.random()*3000,
+    y: Math.random()*3000,
+    text: "Node",
+    score: Math.floor(Math.random()*100)
+  };
+
+  nodes.push(n);
+
+  const el = document.createElement("div");
+  el.className = "node";
+  el.innerText = n.text;
+  el.style.left = n.x+"px";
+  el.style.top = n.y+"px";
+
+  world.appendChild(el);
+
+  updateTrending();
+}
+
+/* TRENDING */
+function updateTrending(){
+  const sorted = [...nodes].sort((a,b)=>b.score-a.score).slice(0,5);
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  sorted.forEach(n=>{
+    const el = document.createElement("div");
+    el.className = "item";
+    el.innerText = "🔥 "+n.text;
+
+    el.onclick = ()=>{
+      jump(n.x,n.y);
+    };
+
+    list.appendChild(el);
+  });
+}
+
+/* CAMERA */
+function jump(x,y){
+  offsetX = -x*scale + window.innerWidth/2;
+  offsetY = -y*scale + window.innerHeight/2;
+  update();
+}
+
+/* PAN */
+document.addEventListener("mousedown", ()=>dragging=true);
+document.addEventListener("mouseup", ()=>dragging=false);
+
+document.addEventListener("mousemove",(e)=>{
+  if(dragging){
+    offsetX += e.movementX;
+    offsetY += e.movementY;
+    update();
+  }
+});
+
+/* ZOOM */
+document.addEventListener("wheel",(e)=>{
+  e.preventDefault();
+
+  const old = scale;
+  scale -= e.deltaY*0.001;
+  scale = Math.min(3, Math.max(0.3, scale));
+
+  const mx = e.clientX;
+  const my = e.clientY;
+
+  offsetX = mx - (mx-offsetX)*(scale/old);
+  offsetY = my - (my-offsetY)*(scale/old);
+
+  update();
+},{passive:false});
+
+function update(){
+  world.style.transform =
+    `translate(${offsetX}px,${offsetY}px) scale(${scale})`;
+}
+</script>
 
 </body>
 </html>
