@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>World Canvas LAYERS FIX</title>
+<title>Infinite Canvas FIXED</title>
 
 <style>
 body {
@@ -23,16 +23,7 @@ body {
   position:relative;
   width:20000px;
   height:20000px;
-  background:#f5f5f5;
-}
-
-/* LAYERS */
-#drawLayer, #videoLayer, #textLayer {
-  position:absolute;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
+  background:#f4f4f4;
 }
 
 /* UI */
@@ -76,7 +67,6 @@ body {
   border:1px solid #ccc;
   border-radius:8px;
   cursor:grab;
-  z-index:10;
 }
 
 iframe {
@@ -85,12 +75,10 @@ iframe {
   height:200px;
   border:none;
   cursor:grab;
-  z-index:5;
 }
 
 canvas.draw {
   position:absolute;
-  z-index:1;
 }
 </style>
 </head>
@@ -98,13 +86,7 @@ canvas.draw {
 <body>
 
 <div id="camera">
-  <div id="world">
-
-    <div id="drawLayer"></div>
-    <div id="videoLayer"></div>
-    <div id="textLayer"></div>
-
-  </div>
+  <div id="world"></div>
 </div>
 
 <div id="ui">
@@ -118,9 +100,7 @@ canvas.draw {
 
 <script>
 const camera = document.getElementById("camera");
-const drawLayer = document.getElementById("drawLayer");
-const videoLayer = document.getElementById("videoLayer");
-const textLayer = document.getElementById("textLayer");
+const world = document.getElementById("world");
 
 /* CAMERA */
 let camX = 0;
@@ -170,14 +150,15 @@ document.addEventListener("mouseup",()=>dragging=false);
 document.addEventListener("wheel",(e)=>{
   e.preventDefault();
 
-  let zoom = e.deltaY > 0 ? 0.9 : 1.1;
-  scale *= zoom;
+  let old = scale;
+
+  scale += e.deltaY * -0.001;
   scale = Math.max(0.2, Math.min(4, scale));
 
   render();
 },{passive:false});
 
-/* TEXT (TOP LAYER) */
+/* TEXT */
 function addText(){
   const el = document.createElement("div");
   el.className = "node";
@@ -186,12 +167,12 @@ function addText(){
   el.style.left = "500px";
   el.style.top = "500px";
 
-  textLayer.appendChild(el);
+  world.appendChild(el);
 }
 
-/* YOUTUBE (MIDDLE LAYER) */
+/* YOUTUBE (DRAG FIXED WRAPPER) */
 function addYT(){
-  let url = prompt("YouTube link:");
+  let url = prompt("Paste YouTube link:");
   if(!url) return;
 
   let id;
@@ -204,15 +185,23 @@ function addYT(){
 
   if(!id) return alert("Invalid link");
 
+  const wrapper = document.createElement("div");
+  wrapper.className = "node";
+  wrapper.style.width = "320px";
+  wrapper.style.height = "200px";
+  wrapper.style.padding = "0";
+
+  wrapper.style.left = "700px";
+  wrapper.style.top = "700px";
+
   const iframe = document.createElement("iframe");
   iframe.src = "https://www.youtube.com/embed/" + id;
-  iframe.style.left = "600px";
-  iframe.style.top = "600px";
 
-  videoLayer.appendChild(iframe);
+  wrapper.appendChild(iframe);
+  world.appendChild(wrapper);
 }
 
-/* DRAW (BACK LAYER) */
+/* DRAW (FULL WORLD SYSTEM FIXED) */
 let drawMode = false;
 let drawing = false;
 let canvas = null;
@@ -227,17 +216,21 @@ document.addEventListener("mousedown",(e)=>{
   if(!drawMode) return;
   if(e.target.closest("#ui")) return;
 
+  // convert screen → world coords
+  const wx = (e.clientX - camX) / scale;
+  const wy = (e.clientY - camY) / scale;
+
   canvas = document.createElement("canvas");
-  canvas.width = 800;
-  canvas.height = 800;
+  canvas.width = 1200;
+  canvas.height = 1200;
   canvas.className = "draw";
 
-  canvas.style.left = (e.clientX - camX) + "px";
-  canvas.style.top  = (e.clientY - camY) + "px";
+  canvas.style.left = wx + "px";
+  canvas.style.top = wy + "px";
 
   ctx = canvas.getContext("2d");
 
-  drawLayer.appendChild(canvas);
+  world.appendChild(canvas);
 
   drawing = true;
 });
@@ -245,10 +238,10 @@ document.addEventListener("mousedown",(e)=>{
 document.addEventListener("mousemove",(e)=>{
   if(!drawing || !ctx) return;
 
-  const x = (e.clientX - camX);
-  const y = (e.clientY - camY);
+  const wx = (e.clientX - camX) / scale;
+  const wy = (e.clientY - camY) / scale;
 
-  ctx.fillRect(x % 800, y % 800, 3, 3);
+  ctx.fillRect(wx % 1200, wy % 1200, 3, 3);
 });
 
 document.addEventListener("mouseup",()=>{
