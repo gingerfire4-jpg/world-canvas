@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>World Canvas PROPER</title>
+<title>World Canvas FIX FINAL</title>
 
 <style>
 body {
@@ -41,7 +41,6 @@ iframe {
   border:none;
 }
 
-/* UI */
 #ui {
   position:fixed;
   top:20px;
@@ -84,10 +83,9 @@ iframe {
   <button id="plus">+</button>
 
   <div id="menu">
-
     <div class="item" onclick="addText()">Text Box</div>
     <div class="item" onclick="addYT()">YouTube</div>
-    <div class="item" onclick="toggleDraw()">🎨 Draw</div>
+    <div class="item" onclick="toggleDraw()">Draw</div>
 
     <hr>
 
@@ -108,46 +106,49 @@ iframe {
         <option value="10">Large</option>
       </select>
     </div>
-
   </div>
 </div>
 
 <script>
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const world = document.getElementById("world");
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+const world=document.getElementById("world");
 
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+canvas.width=innerWidth;
+canvas.height=innerHeight;
 
 /* CAMERA */
-let cam = { x:0, y:0, zoom:1 };
+let cam={x:0,y:0,zoom:1};
 
 /* OBJECTS */
-let objects = [];
+let objects=[];
 
-/* DRAW */
-let drawMode = false;
-let brushColor = "black";
-let brushSize = 2;
+/* DRAW DATA (WORLD SPACE) */
+let strokes=[];
+let current=null;
 
-/* MENU */
-document.getElementById("plus").onclick = ()=>{
+/* DRAW SETTINGS */
+let drawMode=false;
+let brushColor="black";
+let brushSize=2;
+
+/* UI */
+document.getElementById("plus").onclick=()=>{
   let m=document.getElementById("menu");
-  m.style.display = m.style.display==="block"?"none":"block";
+  m.style.display=m.style.display==="block"?"none":"block";
 };
 
-document.getElementById("color").onchange = e=>{
-  brushColor = e.target.value;
+document.getElementById("color").onchange=e=>{
+  brushColor=e.target.value;
 };
 
-document.getElementById("size").onchange = e=>{
-  brushSize = +e.target.value;
+document.getElementById("size").onchange=e=>{
+  brushSize=+e.target.value;
 };
 
 function toggleDraw(){
-  drawMode = !drawMode;
+  drawMode=!drawMode;
 }
 
 /* =========================
@@ -155,10 +156,10 @@ function toggleDraw(){
    ========================= */
 
 function create(el,x,y){
-  let obj={el,x,y};
-  objects.push(obj);
+  let o={el,x,y};
+  objects.push(o);
   world.appendChild(el);
-  drag(obj);
+  drag(o);
   render();
 }
 
@@ -193,7 +194,7 @@ function addYT(){
 }
 
 /* =========================
-   DRAG FIXED WORLD SPACE
+   DRAG FIX (WORLD SAFE)
    ========================= */
 
 function drag(obj){
@@ -228,11 +229,10 @@ function drag(obj){
 }
 
 /* =========================
-   RENDER WORLD
+   RENDER OBJECTS
    ========================= */
 
 function render(){
-
   for(let o of objects){
     o.el.style.left=(o.x-cam.x)*cam.zoom+"px";
     o.el.style.top=(o.y-cam.y)*cam.zoom+"px";
@@ -268,13 +268,14 @@ canvas.addEventListener("mousemove",(e)=>{
 canvas.addEventListener("mouseup",()=>dragCam=false);
 
 /* =========================
-   ZOOM (WORLD CONSISTENT)
+   ZOOM FIXED WORLD LOGIC
    ========================= */
 
 canvas.addEventListener("wheel",(e)=>{
   e.preventDefault();
 
-  let mx=e.clientX,my=e.clientY;
+  let mx=e.clientX;
+  let my=e.clientY;
 
   let wx=cam.x+mx/cam.zoom;
   let wy=cam.y+my/cam.zoom;
@@ -290,27 +291,48 @@ canvas.addEventListener("wheel",(e)=>{
 },{passive:false});
 
 /* =========================
-   DRAWING (REAL WORLD DRAW)
+   DRAWING (FIXED WORLD SPACE)
    ========================= */
 
-canvas.addEventListener("mousemove",(e)=>{
+canvas.addEventListener("mousedown",(e)=>{
+  if(!drawMode) return;
 
+  current=[];
+  strokes.push(current);
+});
+
+canvas.addEventListener("mousemove",(e)=>{
   if(!drawMode || !e.buttons) return;
 
-  let x = cam.x + e.clientX/cam.zoom;
-  let y = cam.y + e.clientY/cam.zoom;
+  let x=cam.x+e.clientX/cam.zoom;
+  let y=cam.y+e.clientY/cam.zoom;
 
-  ctx.fillStyle = brushColor;
+  current.push({x,y});
 
-  ctx.beginPath();
-  ctx.arc(
-    (x-cam.x)*cam.zoom,
-    (y-cam.y)*cam.zoom,
-    brushSize,
-    0,Math.PI*2
-  );
-  ctx.fill();
+  draw();
 });
+
+/* DRAW ALL STROKES */
+function draw(){
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.fillStyle=brushColor;
+
+  for(let s of strokes){
+    for(let p of s){
+
+      ctx.beginPath();
+      ctx.arc(
+        (p.x-cam.x)*cam.zoom,
+        (p.y-cam.y)*cam.zoom,
+        brushSize,
+        0,Math.PI*2
+      );
+      ctx.fill();
+    }
+  }
+}
 
 </script>
 
