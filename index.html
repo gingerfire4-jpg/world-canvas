@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Stable World Canvas</title>
+<meta charset="utf-8">
+<title>World Canvas</title>
 
 <style>
 body {
@@ -10,11 +11,20 @@ body {
   font-family:Arial;
 }
 
-/* CANVAS BACKGROUND */
+/* DRAW LAYER */
 canvas {
   position:fixed;
   top:0;
   left:0;
+  z-index:1;
+}
+
+/* WORLD OBJECT LAYER */
+#world {
+  position:absolute;
+  top:0;
+  left:0;
+  z-index:2;
 }
 
 /* UI */
@@ -22,7 +32,7 @@ canvas {
   position:fixed;
   top:20px;
   right:20px;
-  z-index:99999;
+  z-index:9999;
 }
 
 #plus {
@@ -72,13 +82,35 @@ iframe {
 <body>
 
 <canvas id="canvas"></canvas>
+<div id="world"></div>
 
 <div id="ui">
   <button id="plus">+</button>
+
   <div id="menu">
     <div class="item" onclick="addText()">Add Text</div>
     <div class="item" onclick="addYT()">Add YouTube</div>
     <div class="item" onclick="toggleDraw()">Draw Mode</div>
+
+    <hr>
+
+    <div class="item">
+      Color:
+      <select id="color">
+        <option value="black">Black</option>
+        <option value="red">Red</option>
+        <option value="green">Green</option>
+      </select>
+    </div>
+
+    <div class="item">
+      Brush:
+      <select id="size">
+        <option value="2">Small</option>
+        <option value="5">Medium</option>
+        <option value="10">Large</option>
+      </select>
+    </div>
   </div>
 </div>
 
@@ -86,6 +118,7 @@ iframe {
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const world = document.getElementById("world");
 
 canvas.width = innerWidth;
 canvas.height = innerHeight;
@@ -93,8 +126,13 @@ canvas.height = innerHeight;
 /* CAMERA */
 let cam = { x:0, y:0, zoom:1 };
 
-/* WORLD OBJECTS */
+/* OBJECTS */
 let objects = [];
+
+/* DRAW SETTINGS */
+let drawMode = false;
+let brushColor = "black";
+let brushSize = 2;
 
 /* UI */
 document.getElementById("plus").onclick = () => {
@@ -102,8 +140,13 @@ document.getElementById("plus").onclick = () => {
   m.style.display = m.style.display === "block" ? "none" : "block";
 };
 
-/* DRAW MODE */
-let drawMode = false;
+document.getElementById("color").onchange = e=>{
+  brushColor = e.target.value;
+};
+
+document.getElementById("size").onchange = e=>{
+  brushSize = +e.target.value;
+};
 
 function toggleDraw(){
   drawMode = !drawMode;
@@ -115,14 +158,10 @@ function toggleDraw(){
 
 function createObject(el, x, y){
 
-  const obj = {
-    el,
-    x,
-    y
-  };
+  const obj = { el, x, y };
 
   objects.push(obj);
-  document.body.appendChild(el);
+  world.appendChild(el);
 
   enableDrag(obj);
 
@@ -162,7 +201,7 @@ function addYT(){
   createObject(el, cam.x + 200, cam.y + 200);
 }
 
-/* DRAG SYSTEM (WORLD BASED FIX) */
+/* DRAG SYSTEM (WORLD CORRECT) */
 function enableDrag(obj){
 
   let dragging = false;
@@ -175,8 +214,8 @@ function enableDrag(obj){
 
     dragging = true;
 
-    ox = e.clientX - screenX(obj);
-    oy = e.clientY - screenY(obj);
+    ox = (e.clientX / cam.zoom) + cam.x - obj.x;
+    oy = (e.clientY / cam.zoom) + cam.y - obj.y;
 
     e.stopPropagation();
   });
@@ -184,8 +223,8 @@ function enableDrag(obj){
   document.addEventListener("mousemove",(e)=>{
     if(!dragging) return;
 
-    obj.x = (e.clientX / cam.zoom) + cam.x - ox / cam.zoom;
-    obj.y = (e.clientY / cam.zoom) + cam.y - oy / cam.zoom;
+    obj.x = (e.clientX / cam.zoom) + cam.x - ox;
+    obj.y = (e.clientY / cam.zoom) + cam.y - oy;
 
     render();
   });
@@ -196,29 +235,22 @@ function enableDrag(obj){
 }
 
 /* =========================
-   WORLD → SCREEN TRANSFORM
+   RENDER SYSTEM
    ========================= */
 
-function screenX(obj){
-  return (obj.x - cam.x) * cam.zoom;
-}
-
-function screenY(obj){
-  return (obj.y - cam.y) * cam.zoom;
-}
-
-/* RENDER OBJECTS */
 function render(){
 
   for(let o of objects){
-    o.el.style.left = screenX(o) + "px";
-    o.el.style.top = screenY(o) + "px";
+
+    o.el.style.left = (o.x - cam.x) * cam.zoom + "px";
+    o.el.style.top  = (o.y - cam.y) * cam.zoom + "px";
+
     o.el.style.transform = `scale(${cam.zoom})`;
   }
 }
 
 /* =========================
-   CAMERA MOVE
+   PAN
    ========================= */
 
 let draggingCam = false;
@@ -245,12 +277,8 @@ canvas.addEventListener("mousemove",(e)=>{
   render();
 });
 
-canvas.addEventListener("mouseup",()=>{
-  draggingCam = false;
-});
-
 /* =========================
-   ZOOM (FIXED WORLD LOGIC)
+   ZOOM (FIXED WORLD ZOOM)
    ========================= */
 
 canvas.addEventListener("wheel",(e)=>{
@@ -263,7 +291,7 @@ canvas.addEventListener("wheel",(e)=>{
   const wy = cam.y + my / cam.zoom;
 
   cam.zoom *= (e.deltaY < 0) ? 1.1 : 0.9;
-  cam.zoom = Math.max(0.2, Math.min(5, cam.zoom));
+  cam.zoom = Math.max(0.2, Math.min(6, cam.zoom));
 
   cam.x = wx - mx / cam.zoom;
   cam.y = wy - my / cam.zoom;
@@ -271,6 +299,23 @@ canvas.addEventListener("wheel",(e)=>{
   render();
 
 },{passive:false});
+
+/* =========================
+   DRAWING (FIXED)
+   ========================= */
+
+canvas.addEventListener("mousemove",(e)=>{
+
+  if(!drawMode || !e.buttons) return;
+
+  const x = e.clientX;
+  const y = e.clientY;
+
+  ctx.fillStyle = brushColor;
+  ctx.beginPath();
+  ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+  ctx.fill();
+});
 
 </script>
 
