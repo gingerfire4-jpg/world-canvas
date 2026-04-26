@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>World Canvas RESTORED</title>
+<title>World Canvas PROPER</title>
 
 <style>
 body {
@@ -11,7 +11,6 @@ body {
   font-family:Arial;
 }
 
-/* DRAW LAYER */
 canvas {
   position:fixed;
   top:0;
@@ -19,7 +18,6 @@ canvas {
   z-index:1;
 }
 
-/* WORLD */
 #world {
   position:absolute;
   top:0;
@@ -27,15 +25,14 @@ canvas {
   z-index:2;
 }
 
-/* OBJECTS */
 .node {
   position:absolute;
   background:white;
   border:1px solid #ccc;
   border-radius:8px;
   padding:8px;
-  cursor:grab;
   user-select:none;
+  cursor:grab;
 }
 
 iframe {
@@ -75,34 +72,10 @@ iframe {
   cursor:pointer;
 }
 .item:hover { background:#eee; }
-
-/* RULES */
-#rules {
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:white;
-  padding:20px;
-  border-radius:10px;
-  border:2px solid black;
-  z-index:99999;
-}
 </style>
 </head>
 
 <body>
-
-<!-- RULES -->
-<div id="rules">
-  <h2>Rules</h2>
-  <p>No NSFW content</p>
-  <p>No illegal content</p>
-  <p>Respect canvas space</p>
-  <button onclick="document.getElementById('rules').style.display='none'">
-    Enter
-  </button>
-</div>
 
 <canvas id="canvas"></canvas>
 <div id="world"></div>
@@ -111,46 +84,81 @@ iframe {
   <button id="plus">+</button>
 
   <div id="menu">
+
     <div class="item" onclick="addText()">Text Box</div>
     <div class="item" onclick="addYT()">YouTube</div>
-    <div class="item" onclick="toggleDraw()">Draw</div>
+    <div class="item" onclick="toggleDraw()">🎨 Draw</div>
+
+    <hr>
+
+    <div class="item">
+      Color:
+      <select id="color">
+        <option value="black">Black</option>
+        <option value="red">Red</option>
+        <option value="green">Green</option>
+      </select>
+    </div>
+
+    <div class="item">
+      Brush:
+      <select id="size">
+        <option value="2">Small</option>
+        <option value="5">Medium</option>
+        <option value="10">Large</option>
+      </select>
+    </div>
+
   </div>
 </div>
 
 <script>
 
-const canvas=document.getElementById("canvas");
-const ctx=canvas.getContext("2d");
-const world=document.getElementById("world");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const world = document.getElementById("world");
 
-canvas.width=innerWidth;
-canvas.height=innerHeight;
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
 /* CAMERA */
-let cam={x:0,y:0,zoom:1};
+let cam = { x:0, y:0, zoom:1 };
 
 /* OBJECTS */
-let objects=[];
+let objects = [];
 
 /* DRAW */
-let strokes=[];
-let current=[];
+let drawMode = false;
+let brushColor = "black";
+let brushSize = 2;
 
 /* MENU */
-document.getElementById("plus").onclick=()=>{
+document.getElementById("plus").onclick = ()=>{
   let m=document.getElementById("menu");
-  m.style.display=m.style.display==="block"?"none":"block";
+  m.style.display = m.style.display==="block"?"none":"block";
 };
 
+document.getElementById("color").onchange = e=>{
+  brushColor = e.target.value;
+};
+
+document.getElementById("size").onchange = e=>{
+  brushSize = +e.target.value;
+};
+
+function toggleDraw(){
+  drawMode = !drawMode;
+}
+
 /* =========================
-   OBJECTS
+   WORLD OBJECTS
    ========================= */
 
 function create(el,x,y){
-  let o={el,x,y};
-  objects.push(o);
+  let obj={el,x,y};
+  objects.push(obj);
   world.appendChild(el);
-  drag(o);
+  drag(obj);
   render();
 }
 
@@ -185,21 +193,23 @@ function addYT(){
 }
 
 /* =========================
-   DRAG FIXED
+   DRAG FIXED WORLD SPACE
    ========================= */
 
 function drag(obj){
 
-  let down=false,ox=0,oy=0;
+  let down=false,offX=0,offY=0;
 
   obj.el.addEventListener("mousedown",(e)=>{
+    if(drawMode) return;
+
     down=true;
 
     let wx=cam.x+e.clientX/cam.zoom;
     let wy=cam.y+e.clientY/cam.zoom;
 
-    ox=wx-obj.x;
-    oy=wy-obj.y;
+    offX=wx-obj.x;
+    offY=wy-obj.y;
   });
 
   document.addEventListener("mousemove",(e)=>{
@@ -208,8 +218,8 @@ function drag(obj){
     let wx=cam.x+e.clientX/cam.zoom;
     let wy=cam.y+e.clientY/cam.zoom;
 
-    obj.x=wx-ox;
-    obj.y=wy-oy;
+    obj.x=wx-offX;
+    obj.y=wy-offY;
 
     render();
   });
@@ -218,10 +228,11 @@ function drag(obj){
 }
 
 /* =========================
-   RENDER
+   RENDER WORLD
    ========================= */
 
 function render(){
+
   for(let o of objects){
     o.el.style.left=(o.x-cam.x)*cam.zoom+"px";
     o.el.style.top=(o.y-cam.y)*cam.zoom+"px";
@@ -229,12 +240,14 @@ function render(){
 }
 
 /* =========================
-   CAMERA
+   CAMERA MOVE
    ========================= */
 
 let dragCam=false,last={x:0,y:0};
 
 canvas.addEventListener("mousedown",(e)=>{
+  if(drawMode) return;
+
   dragCam=true;
   last.x=e.clientX;
   last.y=e.clientY;
@@ -255,7 +268,7 @@ canvas.addEventListener("mousemove",(e)=>{
 canvas.addEventListener("mouseup",()=>dragCam=false);
 
 /* =========================
-   ZOOM FIXED
+   ZOOM (WORLD CONSISTENT)
    ========================= */
 
 canvas.addEventListener("wheel",(e)=>{
@@ -277,20 +290,25 @@ canvas.addEventListener("wheel",(e)=>{
 },{passive:false});
 
 /* =========================
-   DRAWING (FIXED SIMPLE)
+   DRAWING (REAL WORLD DRAW)
    ========================= */
 
 canvas.addEventListener("mousemove",(e)=>{
 
-  if(!e.buttons) return;
+  if(!drawMode || !e.buttons) return;
 
-  let x=(e.clientX/cam.zoom)+cam.x;
-  let y=(e.clientY/cam.zoom)+cam.y;
+  let x = cam.x + e.clientX/cam.zoom;
+  let y = cam.y + e.clientY/cam.zoom;
 
-  ctx.fillStyle="black";
+  ctx.fillStyle = brushColor;
 
   ctx.beginPath();
-  ctx.arc((x-cam.x)*cam.zoom,(y-cam.y)*cam.zoom,2,0,Math.PI*2);
+  ctx.arc(
+    (x-cam.x)*cam.zoom,
+    (y-cam.y)*cam.zoom,
+    brushSize,
+    0,Math.PI*2
+  );
   ctx.fill();
 });
 
