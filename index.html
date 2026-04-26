@@ -436,7 +436,7 @@ let cam={x:0,y:0,zoom:1};
 let objects=[];
 let nextId=0;
 
-/* DRAW DATA (WORLD SPACE) */
+/* DRAW DATA (WORLD SPACE) - EACH STROKE STORES ITS OWN SIZE AND COLOR */
 let strokes=[];
 let current=null;
 
@@ -755,18 +755,23 @@ canvas.addEventListener("wheel",(e)=>{
 },{passive:false});
 
 /* =========================
-   DRAWING (SMOOTH LINES)
+   DRAWING (SMOOTH LINES WITH PER-STROKE SIZE/COLOR)
    ========================= */
 
 canvas.addEventListener("mousedown",(e)=>{
   if(!drawMode) return;
 
-  current=[];
+  // Create new stroke with CURRENT brush size and color
+  current={
+    points:[],
+    color:brushColor,
+    size:brushSize
+  };
   strokes.push(current);
   
   let x=cam.x+e.clientX/cam.zoom;
   let y=cam.y+e.clientY/cam.zoom;
-  current.push({x,y});
+  current.points.push({x,y});
   
   draw();
 });
@@ -777,33 +782,34 @@ canvas.addEventListener("mousemove",(e)=>{
   let x=cam.x+e.clientX/cam.zoom;
   let y=cam.y+e.clientY/cam.zoom;
 
-  current.push({x,y});
+  current.points.push({x,y});
 
   draw();
 });
 
-/* DRAW ALL STROKES (SMOOTH LINES) */
+/* DRAW ALL STROKES (EACH STROKE KEEPS ITS OWN SIZE AND COLOR) */
 function draw(){
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.strokeStyle=brushColor;
-  ctx.fillStyle=brushColor;
-  ctx.lineWidth=brushSize*2*cam.zoom;
   ctx.lineCap="round";
   ctx.lineJoin="round";
 
   for(let s of strokes){
-    if(s.length<2) continue;
+    if(s.points.length<2) continue;
+    
+    // Use this stroke's color and size
+    ctx.strokeStyle=s.color;
+    ctx.lineWidth=s.size*2*cam.zoom;
     
     // Draw smooth line
     ctx.beginPath();
     ctx.moveTo(
-      (s[0].x-cam.x)*cam.zoom,
-      (s[0].y-cam.y)*cam.zoom
+      (s.points[0].x-cam.x)*cam.zoom,
+      (s.points[0].y-cam.y)*cam.zoom
     );
     
-    for(let i=1;i<s.length;i++){
-      let p=s[i];
+    for(let i=1;i<s.points.length;i++){
+      let p=s.points[i];
       ctx.lineTo(
         (p.x-cam.x)*cam.zoom,
         (p.y-cam.y)*cam.zoom
