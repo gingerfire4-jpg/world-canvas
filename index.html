@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Infinite Canvas + Rules</title>
+<title>Infinite Canvas Final</title>
 
 <style>
 body {
@@ -29,7 +29,7 @@ button {
   margin:5px;
 }
 
-/* RULES HUB */
+/* RULES */
 #rules {
   position:fixed;
   top:50%;
@@ -40,26 +40,35 @@ button {
   color:white;
   padding:20px;
   border-radius:12px;
-  z-index:10000;
+  z-index:99999;
   text-align:center;
 }
 
-#rules button {
-  margin-top:15px;
-  padding:10px 15px;
-  border:none;
-  cursor:pointer;
-}
-
-/* BLOCK WHEN RULES OPEN */
 #overlay {
   position:fixed;
   top:0;
   left:0;
   width:100%;
   height:100%;
-  background:rgba(0,0,0,0.4);
-  z-index:9999;
+  background:rgba(0,0,0,0.5);
+  z-index:99998;
+}
+
+/* OBJECTS */
+.node {
+  position:absolute;
+  padding:8px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:8px;
+  cursor:grab;
+}
+
+iframe {
+  width:320px;
+  height:200px;
+  border:none;
+  pointer-events:none; /* 🔥 KEY FIX */
 }
 </style>
 </head>
@@ -73,10 +82,9 @@ button {
 
 <div id="rules">
   <h2>Website Rules</h2>
-  <p>❌ No nudity or sexual content</p>
-  <p>❌ No illegal content</p>
+  <p>❌ No nudity or illegal content</p>
   <p>❌ No harassment or abuse</p>
-  <p>✔ Be creative and respectful</p>
+  <p>✔ Be creative</p>
   <button onclick="closeRules()">I Agree</button>
 </div>
 
@@ -85,10 +93,10 @@ button {
   <button onclick="addText()">Text</button>
   <button onclick="toggleDraw()">Draw</button>
   <button onclick="addYT()">YouTube</button>
-  <button onclick="resetView()">Reset View</button>
 </div>
 
 <script>
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -101,9 +109,9 @@ window.onresize = resize;
 
 /* CAMERA */
 let cam = {
-  x: 0,
-  y: 0,
-  zoom: 1
+  x:0,
+  y:0,
+  zoom:1
 };
 
 function resetView(){
@@ -117,6 +125,12 @@ function closeRules(){
   document.getElementById("rules").style.display = "none";
   document.getElementById("overlay").style.display = "none";
 }
+
+/* FORCE RULES ON LOAD */
+window.addEventListener("load",()=>{
+  document.getElementById("rules").style.display = "block";
+  document.getElementById("overlay").style.display = "block";
+});
 
 /* OBJECTS */
 let objects = [];
@@ -151,16 +165,21 @@ function addYT(){
   });
 }
 
-/* DRAW */
+/* DRAW TOGGLE */
 function toggleDraw(){
   drawMode = !drawMode;
 }
 
-/* PAN + DRAW + CAMERA */
+/* POINTER SYSTEM */
 let dragging = false;
+let dragTarget = null;
 let last = {x:0,y:0};
 
+/* MOUSE DOWN */
 canvas.addEventListener("mousedown",(e)=>{
+
+  last.x = e.clientX;
+  last.y = e.clientY;
 
   if(drawMode){
     drawing = true;
@@ -172,11 +191,17 @@ canvas.addEventListener("mousedown",(e)=>{
     return;
   }
 
+  const node = e.target.closest?.(".node");
+
+  if(node){
+    dragTarget = node;
+    return;
+  }
+
   dragging = true;
-  last.x = e.clientX;
-  last.y = e.clientY;
 });
 
+/* MOUSE MOVE */
 canvas.addEventListener("mousemove",(e)=>{
 
   const dx = e.clientX - last.x;
@@ -185,11 +210,24 @@ canvas.addEventListener("mousemove",(e)=>{
   last.x = e.clientX;
   last.y = e.clientY;
 
+  /* MOVE OBJECT */
+  if(dragTarget){
+    dragTarget.style.left =
+      (parseFloat(dragTarget.style.left || 0) + dx / cam.zoom) + "px";
+
+    dragTarget.style.top =
+      (parseFloat(dragTarget.style.top || 0) + dy / cam.zoom) + "px";
+
+    return;
+  }
+
+  /* CAMERA PAN */
   if(dragging){
     cam.x -= dx / cam.zoom;
     cam.y -= dy / cam.zoom;
   }
 
+  /* DRAW */
   if(drawing){
     currentPath.push({
       x: cam.x + e.clientX / cam.zoom,
@@ -198,16 +236,16 @@ canvas.addEventListener("mousemove",(e)=>{
   }
 });
 
+/* MOUSE UP */
 canvas.addEventListener("mouseup",()=>{
   dragging = false;
+  dragTarget = null;
   drawing = false;
 });
 
-/* TRUE ZOOM (CENTERED) */
+/* TRUE ZOOM */
 canvas.addEventListener("wheel",(e)=>{
   e.preventDefault();
-
-  const zoomFactor = 1.1;
 
   const mouseX = e.clientX;
   const mouseY = e.clientY;
@@ -215,7 +253,7 @@ canvas.addEventListener("wheel",(e)=>{
   const worldX = cam.x + mouseX / cam.zoom;
   const worldY = cam.y + mouseY / cam.zoom;
 
-  cam.zoom *= (e.deltaY < 0) ? zoomFactor : 1/zoomFactor;
+  cam.zoom *= (e.deltaY < 0) ? 1.1 : 0.9;
   cam.zoom = Math.max(0.05, Math.min(20, cam.zoom));
 
   cam.x = worldX - mouseX / cam.zoom;
@@ -223,7 +261,7 @@ canvas.addEventListener("wheel",(e)=>{
 
 },{passive:false});
 
-/* RENDER */
+/* RENDER LOOP */
 function draw(){
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -265,6 +303,7 @@ function draw(){
   requestAnimationFrame(draw);
 }
 draw();
+
 </script>
 
 </body>
