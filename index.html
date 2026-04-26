@@ -4,103 +4,85 @@
 <title>World Canvas</title>
 
 <style>
-body {
-  margin: 0;
-  overflow: hidden;
-  font-family: Arial;
-}
+body { margin:0; overflow:hidden; font-family:Arial; }
 
-/* WORLD */
 #world {
-  position: absolute;
-  width: 10000px;
-  height: 10000px;
-  transform-origin: 0 0;
+  position:absolute;
+  width:10000px;
+  height:10000px;
+  transform-origin:0 0;
 }
 
-/* RULES (PINNED) */
+/* RULES */
 #rules {
-  position: fixed;
-  left: 20px;
-  top: 20px;
-  width: 260px;
-  padding: 15px;
-  border-radius: 14px;
-  background: #0b1b3a;
-  color: white;
-  z-index: 9999;
+  position:fixed;
+  top:20px;
+  left:20px;
+  background:#0b1b3a;
+  color:white;
+  padding:15px;
+  border-radius:12px;
+  z-index:9999;
 }
 
 /* UI */
 #ui {
-  position: fixed;
-  top: 20px;
-  right: 20px;
+  position:fixed;
+  top:20px;
+  right:20px;
+  z-index:9999;
 }
 
 #plus {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  border: none;
-  background: #0b1b3a;
-  color: white;
-  font-size: 22px;
-  cursor: pointer;
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  background:#0b1b3a;
+  color:white;
+  border:none;
+  font-size:22px;
+  cursor:pointer;
 }
 
 #menu {
-  display: none;
-  margin-top: 10px;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 10px;
+  display:none;
+  margin-top:10px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:10px;
 }
 
 .item {
-  padding: 10px;
-  cursor: pointer;
+  padding:10px;
+  cursor:pointer;
 }
-.item:hover { background: #eee; }
-
-/* TRENDING */
-#trending {
-  position: fixed;
-  left: 20px;
-  bottom: 20px;
-  width: 220px;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  padding: 10px;
-}
+.item:hover { background:#eee; }
 
 /* OBJECTS */
 .node {
-  position: absolute;
-  min-width: 120px;
-  padding: 8px;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  cursor: move;
+  position:absolute;
+  padding:8px;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:8px;
+  cursor:move;
 }
 
-/* YOUTUBE */
 iframe {
-  position: absolute;
-  width: 300px;
-  height: 200px;
-  border: none;
-  cursor: move;
+  position:absolute;
+  width:320px;
+  height:200px;
+  border:none;
+  cursor:move;
 }
 
 /* DRAW */
 canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
+  position:fixed;
+  top:0;
+  left:0;
+  z-index:5000;
+  pointer-events:none;
 }
 </style>
 </head>
@@ -109,60 +91,66 @@ canvas {
 
 <div id="world"></div>
 
-<!-- RULES -->
 <div id="rules">
   <h3>Rules Hub</h3>
   <p>Spawn point</p>
 </div>
 
-<!-- UI -->
 <div id="ui">
   <button id="plus">+</button>
   <div id="menu">
-    <div class="item" onclick="addText()">🔤 Text</div>
-    <div class="item" onclick="enableDraw()">🎨 Draw</div>
-    <div class="item" onclick="addYouTube()">📺 YouTube</div>
+    <div class="item" id="btnText">🔤 Text</div>
+    <div class="item" id="btnDraw">🎨 Draw</div>
+    <div class="item" id="btnYT">📺 YouTube</div>
   </div>
-</div>
-
-<!-- TRENDING -->
-<div id="trending">
-  <b>🔥 Trending</b>
-  <div id="list"></div>
 </div>
 
 <canvas id="draw"></canvas>
 
 <script>
 let world = document.getElementById("world");
-let canvas = document.getElementById("draw");
-let ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let offsetX = 0, offsetY = 0, scale = 1;
-let draggingWorld = false;
-let dragTarget = null;
-
-let drawMode = false;
 
 /* MENU */
-document.getElementById("plus").onclick = () => {
-  let m = document.getElementById("menu");
-  m.style.display = m.style.display === "block" ? "none" : "block";
+const plus = document.getElementById("plus");
+const menu = document.getElementById("menu");
+
+plus.onclick = () => {
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
 };
 
-/* DRAG ELEMENT */
-function makeDraggable(el) {
-  el.addEventListener("mousedown", (e) => {
-    dragTarget = el;
+document.addEventListener("click", (e)=>{
+  if (!menu.contains(e.target) && e.target !== plus) {
+    menu.style.display = "none";
+  }
+});
+
+/* DRAG SYSTEM */
+let dragEl = null;
+
+function makeDraggable(el){
+  el.addEventListener("mousedown",(e)=>{
+    dragEl = el;
     e.stopPropagation();
   });
 }
 
+document.addEventListener("mousemove",(e)=>{
+  if(dragEl){
+    elMove(dragEl, e.movementX, e.movementY);
+  }
+});
+
+document.addEventListener("mouseup",()=>{
+  dragEl = null;
+});
+
+function elMove(el, dx, dy){
+  el.style.left = (parseFloat(el.style.left)||0) + dx + "px";
+  el.style.top  = (parseFloat(el.style.top)||0) + dy + "px";
+}
+
 /* TEXT */
-function addText() {
+document.getElementById("btnText").onclick = ()=>{
   const el = document.createElement("div");
   el.className = "node";
   el.contentEditable = true;
@@ -171,15 +159,25 @@ function addText() {
   el.style.top = "300px";
   world.appendChild(el);
   makeDraggable(el);
-}
+};
 
 /* YOUTUBE */
-function addYouTube() {
+document.getElementById("btnYT").onclick = ()=>{
   let url = prompt("Paste YouTube link:");
-  if (!url) return;
+  if(!url) return;
 
-  let id = url.split("v=")[1];
-  if (!id) return alert("Invalid link");
+  let id = null;
+
+  if(url.includes("youtube.com/watch?v=")){
+    id = url.split("v=")[1].split("&")[0];
+  } else if(url.includes("youtu.be/")){
+    id = url.split("youtu.be/")[1];
+  }
+
+  if(!id){
+    alert("Invalid YouTube link");
+    return;
+  }
 
   const iframe = document.createElement("iframe");
   iframe.src = "https://www.youtube.com/embed/" + id;
@@ -188,60 +186,62 @@ function addYouTube() {
 
   world.appendChild(iframe);
   makeDraggable(iframe);
-}
+};
 
-/* DRAW */
-function enableDraw() {
-  drawMode = !drawMode;
-  canvas.style.pointerEvents = drawMode ? "auto" : "none";
-}
+/* DRAW TOOL */
+let canvas = document.getElementById("draw");
+let ctx = canvas.getContext("2d");
 
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let drawMode = false;
 let drawing = false;
 
-canvas.addEventListener("mousedown", () => {
-  if (!drawMode) return;
-  drawing = true;
+document.getElementById("btnDraw").onclick = ()=>{
+  drawMode = !drawMode;
+  canvas.style.pointerEvents = drawMode ? "auto" : "none";
+  alert("Draw mode: " + (drawMode ? "ON" : "OFF"));
+};
+
+canvas.addEventListener("mousedown",()=>{
+  if(drawMode) drawing = true;
 });
 
-canvas.addEventListener("mouseup", () => drawing = false);
+canvas.addEventListener("mouseup",()=>drawing=false);
 
-canvas.addEventListener("mousemove", (e) => {
-  if (!drawing) return;
-  ctx.fillRect(e.clientX, e.clientY, 2, 2);
-});
-
-/* WORLD PAN */
-document.addEventListener("mousedown", () => draggingWorld = true);
-document.addEventListener("mouseup", () => {
-  draggingWorld = false;
-  dragTarget = null;
-});
-
-document.addEventListener("mousemove", (e) => {
-  if (dragTarget) {
-    dragTarget.style.left =
-      (parseFloat(dragTarget.style.left) + e.movementX) + "px";
-    dragTarget.style.top =
-      (parseFloat(dragTarget.style.top) + e.movementY) + "px";
-    return;
+canvas.addEventListener("mousemove",(e)=>{
+  if(drawing){
+    ctx.fillRect(e.clientX, e.clientY, 3, 3);
   }
+});
 
-  if (draggingWorld && !drawMode) {
+/* PAN + ZOOM */
+let offsetX = 0, offsetY = 0, scale = 1;
+let draggingWorld = false;
+
+document.addEventListener("mousedown",()=>{
+  if(!dragEl && !drawMode) draggingWorld = true;
+});
+
+document.addEventListener("mouseup",()=>draggingWorld=false);
+
+document.addEventListener("mousemove",(e)=>{
+  if(draggingWorld){
     offsetX += e.movementX;
     offsetY += e.movementY;
     update();
   }
 });
 
-/* ZOOM */
-document.addEventListener("wheel", (e) => {
+document.addEventListener("wheel",(e)=>{
   e.preventDefault();
   scale -= e.deltaY * 0.001;
   scale = Math.max(0.3, Math.min(3, scale));
   update();
-}, { passive:false });
+},{passive:false});
 
-function update() {
+function update(){
   world.style.transform =
     `translate(${offsetX}px,${offsetY}px) scale(${scale})`;
 }
