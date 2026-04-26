@@ -1,17 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Infinite Canvas Final</title>
+<title>Fixed Infinite Canvas</title>
 
 <style>
 body {
   margin:0;
   overflow:hidden;
   font-family:Arial;
-  background:#ddd;
 }
 
-/* CANVAS */
+/* CAMERA */
+#camera {
+  position:absolute;
+  top:0;
+  left:0;
+  transform-origin:0 0;
+}
+
+/* CANVAS BACKGROUND */
 canvas {
   display:block;
 }
@@ -21,54 +28,52 @@ canvas {
   position:fixed;
   top:20px;
   right:20px;
-  z-index:9999;
+  z-index:99999;
 }
 
-button {
-  padding:10px;
-  margin:5px;
-}
-
-/* RULES */
-#rules {
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  width:420px;
+#plus {
+  width:50px;
+  height:50px;
+  border-radius:50%;
   background:#0b1b3a;
   color:white;
-  padding:20px;
-  border-radius:12px;
-  z-index:99999;
-  text-align:center;
+  border:none;
+  font-size:24px;
+  cursor:pointer;
 }
 
-#overlay {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.5);
-  z-index:99998;
+#menu {
+  display:none;
+  margin-top:10px;
+  background:white;
+  border-radius:10px;
+  border:1px solid #ccc;
 }
+
+.item {
+  padding:10px;
+  cursor:pointer;
+}
+.item:hover { background:#eee; }
 
 /* OBJECTS */
 .node {
   position:absolute;
-  padding:8px;
   background:white;
   border:1px solid #ccc;
   border-radius:8px;
+  padding:8px;
   cursor:grab;
+}
+
+.node[contenteditable="true"] {
+  cursor:text;
 }
 
 iframe {
   width:320px;
   height:200px;
   border:none;
-  pointer-events:none; /* 🔥 KEY FIX */
 }
 </style>
 </head>
@@ -77,22 +82,14 @@ iframe {
 
 <canvas id="canvas"></canvas>
 
-<!-- RULES -->
-<div id="overlay"></div>
-
-<div id="rules">
-  <h2>Website Rules</h2>
-  <p>❌ No nudity or illegal content</p>
-  <p>❌ No harassment or abuse</p>
-  <p>✔ Be creative</p>
-  <button onclick="closeRules()">I Agree</button>
-</div>
-
 <!-- UI -->
 <div id="ui">
-  <button onclick="addText()">Text</button>
-  <button onclick="toggleDraw()">Draw</button>
-  <button onclick="addYT()">YouTube</button>
+  <button id="plus">+</button>
+  <div id="menu">
+    <div class="item" onclick="addText()">🔤 Text</div>
+    <div class="item" onclick="addYT()">📺 YouTube</div>
+    <div class="item" onclick="toggleDraw()">🎨 Draw</div>
+  </div>
 </div>
 
 <script>
@@ -108,47 +105,32 @@ resize();
 window.onresize = resize;
 
 /* CAMERA */
-let cam = {
-  x:0,
-  y:0,
-  zoom:1
-};
-
-function resetView(){
-  cam.x = 0;
-  cam.y = 0;
-  cam.zoom = 1;
-}
-
-/* RULES */
-function closeRules(){
-  document.getElementById("rules").style.display = "none";
-  document.getElementById("overlay").style.display = "none";
-}
-
-/* FORCE RULES ON LOAD */
-window.addEventListener("load",()=>{
-  document.getElementById("rules").style.display = "block";
-  document.getElementById("overlay").style.display = "block";
-});
+let cam = { x:0, y:0, zoom:1 };
 
 /* OBJECTS */
 let objects = [];
-let drawMode = false;
-let drawing = false;
-let currentPath = [];
+
+/* UI MENU */
+const menu = document.getElementById("menu");
+document.getElementById("plus").onclick = () => {
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+};
 
 /* TEXT */
 function addText(){
-  objects.push({
-    type:"text",
-    x: cam.x,
-    y: cam.y,
-    text:"Text"
-  });
+  const el = document.createElement("div");
+  el.className = "node";
+  el.contentEditable = true;
+  el.innerText = "Type here...";
+  el.style.left = "400px";
+  el.style.top = "400px";
+
+  makeDraggable(el);
+
+  document.body.appendChild(el);
 }
 
-/* YOUTUBE */
+/* YOUTUBE (REAL VIDEO FIX) */
 function addYT(){
   let url = prompt("YouTube link:");
   if(!url) return;
@@ -157,51 +139,71 @@ function addYT(){
     ? url.split("v=")[1].split("&")[0]
     : url.split("youtu.be/")[1];
 
-  objects.push({
-    type:"yt",
-    x: cam.x,
-    y: cam.y,
-    id:id
+  const el = document.createElement("div");
+  el.className = "node";
+  el.style.left = "500px";
+  el.style.top = "500px";
+  el.style.padding = "0";
+
+  const iframe = document.createElement("iframe");
+  iframe.src = "https://www.youtube.com/embed/" + id;
+
+  el.appendChild(iframe);
+
+  makeDraggable(el);
+
+  document.body.appendChild(el);
+}
+
+/* DRAG SYSTEM (FIXED) */
+function makeDraggable(el){
+
+  let dragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  el.addEventListener("mousedown",(e)=>{
+
+    if(el.isContentEditable) return; // allow typing
+
+    dragging = true;
+
+    offsetX = e.clientX - el.offsetLeft;
+    offsetY = e.clientY - el.offsetTop;
+
+    e.stopPropagation();
+  });
+
+  document.addEventListener("mousemove",(e)=>{
+    if(!dragging) return;
+
+    el.style.left = (e.clientX - offsetX) + "px";
+    el.style.top = (e.clientY - offsetY) + "px";
+  });
+
+  document.addEventListener("mouseup",()=>{
+    dragging = false;
   });
 }
 
-/* DRAW TOGGLE */
+/* DRAW MODE */
+let drawMode = false;
+let drawing = false;
+
 function toggleDraw(){
   drawMode = !drawMode;
 }
 
-/* POINTER SYSTEM */
-let dragging = false;
-let dragTarget = null;
+/* CAMERA PAN */
+let draggingCam = false;
 let last = {x:0,y:0};
 
-/* MOUSE DOWN */
 canvas.addEventListener("mousedown",(e)=>{
-
+  draggingCam = true;
   last.x = e.clientX;
   last.y = e.clientY;
-
-  if(drawMode){
-    drawing = true;
-    currentPath = [];
-    objects.push({
-      type:"draw",
-      points: currentPath
-    });
-    return;
-  }
-
-  const node = e.target.closest?.(".node");
-
-  if(node){
-    dragTarget = node;
-    return;
-  }
-
-  dragging = true;
 });
 
-/* MOUSE MOVE */
 canvas.addEventListener("mousemove",(e)=>{
 
   const dx = e.clientX - last.x;
@@ -210,96 +212,34 @@ canvas.addEventListener("mousemove",(e)=>{
   last.x = e.clientX;
   last.y = e.clientY;
 
-  /* MOVE OBJECT */
-  if(dragTarget){
-    dragTarget.style.left =
-      (parseFloat(dragTarget.style.left || 0) + dx / cam.zoom) + "px";
-
-    dragTarget.style.top =
-      (parseFloat(dragTarget.style.top || 0) + dy / cam.zoom) + "px";
-
-    return;
-  }
-
-  /* CAMERA PAN */
-  if(dragging){
-    cam.x -= dx / cam.zoom;
-    cam.y -= dy / cam.zoom;
-  }
-
-  /* DRAW */
-  if(drawing){
-    currentPath.push({
-      x: cam.x + e.clientX / cam.zoom,
-      y: cam.y + e.clientY / cam.zoom
-    });
+  if(draggingCam){
+    cam.x -= dx;
+    cam.y -= dy;
   }
 });
 
-/* MOUSE UP */
-canvas.addEventListener("mouseup",()=>{
-  dragging = false;
-  dragTarget = null;
-  drawing = false;
-});
-
-/* TRUE ZOOM */
+/* ZOOM */
 canvas.addEventListener("wheel",(e)=>{
   e.preventDefault();
 
-  const mouseX = e.clientX;
-  const mouseY = e.clientY;
-
-  const worldX = cam.x + mouseX / cam.zoom;
-  const worldY = cam.y + mouseY / cam.zoom;
-
-  cam.zoom *= (e.deltaY < 0) ? 1.1 : 0.9;
-  cam.zoom = Math.max(0.05, Math.min(20, cam.zoom));
-
-  cam.x = worldX - mouseX / cam.zoom;
-  cam.y = worldY - mouseY / cam.zoom;
+  let zoom = e.deltaY > 0 ? 0.9 : 1.1;
+  cam.zoom *= zoom;
+  cam.zoom = Math.max(0.3, Math.min(5, cam.zoom));
 
 },{passive:false});
 
-/* RENDER LOOP */
+/* DRAW */
+canvas.addEventListener("mousemove",(e)=>{
+
+  if(!drawMode || !draggingCam) return;
+
+  ctx.fillStyle="black";
+  ctx.fillRect(e.clientX, e.clientY, 3, 3);
+});
+
+/* RENDER LOOP (optional future extension) */
 function draw(){
-
   ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  ctx.save();
-  ctx.scale(cam.zoom, cam.zoom);
-  ctx.translate(-cam.x, -cam.y);
-
-  for(let o of objects){
-
-    if(o.type === "text"){
-      ctx.fillStyle="black";
-      ctx.font="20px Arial";
-      ctx.fillText(o.text, o.x, o.y);
-    }
-
-    if(o.type === "draw"){
-      ctx.strokeStyle="black";
-      ctx.beginPath();
-
-      for(let i=0;i<o.points.length;i++){
-        const p = o.points[i];
-        if(i===0) ctx.moveTo(p.x,p.y);
-        else ctx.lineTo(p.x,p.y);
-      }
-
-      ctx.stroke();
-    }
-
-    if(o.type === "yt"){
-      ctx.fillStyle="red";
-      ctx.fillRect(o.x, o.y, 120, 80);
-      ctx.fillStyle="white";
-      ctx.fillText("YouTube", o.x+10, o.y+40);
-    }
-  }
-
-  ctx.restore();
   requestAnimationFrame(draw);
 }
 draw();
