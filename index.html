@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>World Canvas Rebuild</title>
+<meta charset="utf-8">
+<title>World Canvas</title>
 
 <style>
 body {
@@ -10,7 +11,7 @@ body {
   font-family:Arial;
 }
 
-/* WORLD CONTAINER */
+/* WORLD LAYER */
 #world {
   position:absolute;
   top:0;
@@ -18,7 +19,7 @@ body {
   transform-origin:0 0;
 }
 
-/* CANVAS (DRAW LAYER) */
+/* DRAW CANVAS */
 canvas {
   position:fixed;
   top:0;
@@ -88,10 +89,31 @@ iframe {
 <!-- UI -->
 <div id="ui">
   <button id="plus">+</button>
+
   <div id="menu">
-    <div class="item" onclick="addText()">Text</div>
-    <div class="item" onclick="addYT()">YouTube</div>
-    <div class="item" onclick="toggleDraw()">Draw</div>
+    <div class="item" onclick="addText()">Add Text</div>
+    <div class="item" onclick="addYT()">Add YouTube</div>
+    <div class="item" onclick="toggleDraw()">Draw Mode</div>
+
+    <hr>
+
+    <div class="item">
+      Color:
+      <select id="color">
+        <option value="black">Black</option>
+        <option value="red">Red</option>
+        <option value="green">Green</option>
+      </select>
+    </div>
+
+    <div class="item">
+      Size:
+      <select id="size">
+        <option value="2">Small</option>
+        <option value="5">Medium</option>
+        <option value="10">Large</option>
+      </select>
+    </div>
   </div>
 </div>
 
@@ -101,19 +123,16 @@ const world = document.getElementById("world");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-function resize(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resize();
-window.onresize = resize;
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
 /* CAMERA */
-let cam = {
-  x:0,
-  y:0,
-  zoom:1
-};
+let cam = { x:0, y:0, zoom:1 };
+
+function applyCamera(){
+  world.style.transform =
+    `translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`;
+}
 
 /* UI */
 const menu = document.getElementById("menu");
@@ -122,14 +141,24 @@ document.getElementById("plus").onclick = () => {
   menu.style.display = menu.style.display === "block" ? "none" : "block";
 };
 
-/* DRAW MODE */
+/* DRAW SETTINGS */
 let drawMode = false;
+let color = "black";
+let size = 2;
+
+document.getElementById("color").onchange = e=>{
+  color = e.target.value;
+};
+
+document.getElementById("size").onchange = e=>{
+  size = +e.target.value;
+};
 
 function toggleDraw(){
   drawMode = !drawMode;
 }
 
-/* WORLD OBJECTS */
+/* TEXT */
 function addText(){
 
   const el = document.createElement("div");
@@ -137,13 +166,15 @@ function addText(){
   el.contentEditable = true;
   el.innerText = "Text";
 
-  el.dataset.x = cam.x;
-  el.dataset.y = cam.y;
+  el.style.left = "400px";
+  el.style.top = "400px";
+
+  makeDraggable(el);
 
   world.appendChild(el);
-  makeDraggable(el);
 }
 
+/* YOUTUBE */
 function addYT(){
 
   let url = prompt("YouTube link:");
@@ -155,21 +186,22 @@ function addYT(){
 
   const el = document.createElement("div");
   el.className = "node";
-  el.style.padding = "0";
 
-  el.dataset.x = cam.x;
-  el.dataset.y = cam.y;
+  el.style.left = "500px";
+  el.style.top = "500px";
+  el.style.padding = "0";
 
   const iframe = document.createElement("iframe");
   iframe.src = "https://www.youtube.com/embed/" + id;
 
   el.appendChild(iframe);
 
-  world.appendChild(el);
   makeDraggable(el);
+
+  world.appendChild(el);
 }
 
-/* DRAG (WORLD COORDS FIXED) */
+/* DRAG SYSTEM (FIXED) */
 function makeDraggable(el){
 
   let dragging = false;
@@ -177,6 +209,8 @@ function makeDraggable(el){
   let oy = 0;
 
   el.addEventListener("mousedown",(e)=>{
+
+    if(el.isContentEditable) return;
 
     dragging = true;
 
@@ -199,11 +233,11 @@ function makeDraggable(el){
 }
 
 /* PAN */
-let dragging = false;
+let draggingCam = false;
 let last = {x:0,y:0};
 
 canvas.addEventListener("mousedown",(e)=>{
-  dragging = true;
+  draggingCam = true;
   last.x = e.clientX;
   last.y = e.clientY;
 });
@@ -216,25 +250,27 @@ canvas.addEventListener("mousemove",(e)=>{
   last.x = e.clientX;
   last.y = e.clientY;
 
-  if(dragging){
+  if(draggingCam){
     cam.x += dx;
     cam.y += dy;
-
-    world.style.transform =
-      `translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`;
+    applyCamera();
   }
 
   if(drawMode && e.buttons){
-    ctx.fillStyle = "black";
-    ctx.fillRect(e.clientX, e.clientY, 2, 2);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(e.clientX, e.clientY, size, 0, Math.PI*2);
+    ctx.fill();
   }
 });
 
-/* ZOOM (FIXED PROPERLY) */
+canvas.addEventListener("mouseup",()=>{
+  draggingCam = false;
+});
+
+/* ZOOM (FIXED WORLD ZOOM) */
 canvas.addEventListener("wheel",(e)=>{
   e.preventDefault();
-
-  const zoomFactor = 1.1;
 
   const mx = e.clientX;
   const my = e.clientY;
@@ -242,14 +278,13 @@ canvas.addEventListener("wheel",(e)=>{
   const wx = (mx - cam.x) / cam.zoom;
   const wy = (my - cam.y) / cam.zoom;
 
-  cam.zoom *= (e.deltaY < 0) ? zoomFactor : 1/zoomFactor;
+  cam.zoom *= (e.deltaY < 0) ? 1.1 : 0.9;
   cam.zoom = Math.max(0.2, Math.min(6, cam.zoom));
 
   cam.x = mx - wx * cam.zoom;
   cam.y = my - wy * cam.zoom;
 
-  world.style.transform =
-    `translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`;
+  applyCamera();
 
 },{passive:false});
 
