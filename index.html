@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>World Canvas FIXED</title>
+<title>World Canvas (Move + Infinite)</title>
 
 <style>
 body { margin:0; overflow:hidden; font-family:Arial; }
@@ -9,12 +9,13 @@ body { margin:0; overflow:hidden; font-family:Arial; }
 /* WORLD */
 #world {
   position:absolute;
-  width:10000px;
-  height:10000px;
-  background:#fafafa;
+  width:20000px;
+  height:20000px;
+  background:#f9f9f9;
+  transform-origin:0 0;
 }
 
-/* RULES (fixed UI) */
+/* RULES */
 #rules {
   position:fixed;
   top:20px;
@@ -59,7 +60,7 @@ body { margin:0; overflow:hidden; font-family:Arial; }
 }
 .item:hover { background:#eee; }
 
-/* ELEMENTS */
+/* OBJECTS */
 .node {
   position:absolute;
   padding:8px;
@@ -111,31 +112,71 @@ canvas {
 <script>
 const world = document.getElementById("world");
 
+/* CAMERA */
+let offsetX = 0;
+let offsetY = 0;
+let scale = 1;
+
 /* MENU */
 const plus = document.getElementById("plus");
 const menu = document.getElementById("menu");
 
 plus.onclick = () => {
-  menu.style.display = (menu.style.display === "block") ? "none" : "block";
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
 };
 
 /* DRAG SYSTEM */
-let current = null;
+let dragEl = null;
+let draggingWorld = false;
 
 document.addEventListener("mousedown",(e)=>{
   if(e.target.classList.contains("node") || e.target.tagName==="IFRAME"){
-    current = e.target;
+    dragEl = e.target;
+  } else {
+    draggingWorld = true;
   }
 });
 
 document.addEventListener("mousemove",(e)=>{
-  if(current){
-    current.style.left = (parseFloat(current.style.left||0)+e.movementX)+"px";
-    current.style.top  = (parseFloat(current.style.top||0)+e.movementY)+"px";
+  if(dragEl){
+    dragEl.style.left = (parseFloat(dragEl.style.left||0)+e.movementX)+"px";
+    dragEl.style.top  = (parseFloat(dragEl.style.top||0)+e.movementY)+"px";
+    return;
+  }
+
+  if(draggingWorld){
+    offsetX += e.movementX;
+    offsetY += e.movementY;
+    updateCamera();
   }
 });
 
-document.addEventListener("mouseup",()=>current=null);
+document.addEventListener("mouseup",()=>{
+  dragEl = null;
+  draggingWorld = false;
+});
+
+/* ZOOM */
+document.addEventListener("wheel",(e)=>{
+  e.preventDefault();
+
+  const oldScale = scale;
+  scale -= e.deltaY * 0.001;
+  scale = Math.max(0.3, Math.min(3, scale));
+
+  const mx = e.clientX;
+  const my = e.clientY;
+
+  offsetX = mx - (mx - offsetX) * (scale / oldScale);
+  offsetY = my - (my - offsetY) * (scale / oldScale);
+
+  updateCamera();
+},{passive:false});
+
+function updateCamera(){
+  world.style.transform =
+    `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+}
 
 /* TEXT */
 function createText(){
@@ -187,7 +228,7 @@ let drawMode = false;
 function toggleDraw(){
   drawMode = !drawMode;
   canvas.style.pointerEvents = drawMode ? "auto" : "none";
-  alert("Draw mode: " + (drawMode ? "ON" : "OFF"));
+  alert("Draw: " + (drawMode ? "ON" : "OFF"));
 }
 
 canvas.addEventListener("mousedown",()=>{ if(drawMode) drawing=true; });
