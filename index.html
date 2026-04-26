@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>World Canvas</title>
+<title>World Canvas CLEAN ENGINE</title>
 
 <style>
 body {
@@ -10,25 +10,20 @@ body {
   font-family:Arial;
 }
 
-/* WORLD */
-#world {
+/* CAMERA LAYER */
+#camera {
   position:absolute;
-  width:20000px;
-  height:20000px;
-  background:#f3f3f3;
+  top:0;
+  left:0;
   transform-origin:0 0;
 }
 
-/* RULES */
-#rules {
-  position:fixed;
-  top:20px;
-  left:20px;
-  background:#0b1b3a;
-  color:white;
-  padding:15px;
-  border-radius:10px;
-  z-index:1000;
+/* WORLD */
+#world {
+  position:relative;
+  width:20000px;
+  height:20000px;
+  background:#f4f4f4;
 }
 
 /* UI */
@@ -36,7 +31,7 @@ body {
   position:fixed;
   top:20px;
   right:20px;
-  z-index:1000;
+  z-index:9999;
 }
 
 #plus {
@@ -90,130 +85,109 @@ canvas.draw {
 
 <body>
 
-<div id="world"></div>
-
-<div id="rules">
-  <h3>Rules Hub</h3>
-  <p>Drag to move</p>
-  <p>Scroll to zoom</p>
+<div id="camera">
+  <div id="world"></div>
 </div>
 
 <div id="ui">
   <button id="plus">+</button>
   <div id="menu">
-    <div class="item" onclick="createText()">🔤 Text</div>
+    <div class="item" onclick="addText()">🔤 Text</div>
     <div class="item" onclick="toggleDraw()">🎨 Draw</div>
-    <div class="item" onclick="createYT()">📺 YouTube</div>
+    <div class="item" onclick="addYT()">📺 YouTube</div>
   </div>
 </div>
 
 <script>
+const camera = document.getElementById("camera");
 const world = document.getElementById("world");
 
 /* CAMERA */
-let x = 0;
-let y = 0;
+let camX = 0;
+let camY = 0;
 let scale = 1;
 
-function update() {
-  world.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+/* APPLY CAMERA */
+function renderCamera(){
+  camera.style.transform =
+    `translate(${camX}px,${camY}px) scale(${scale})`;
 }
 
 /* MENU */
-const plus = document.getElementById("plus");
 const menu = document.getElementById("menu");
-
-plus.onclick = () => {
+document.getElementById("plus").onclick = () => {
   menu.style.display = menu.style.display === "block" ? "none" : "block";
 };
 
-/* DRAG SYSTEM */
-let dragEl = null;
-let draggingWorld = false;
+/* PAN SYSTEM (FIXED) */
+let dragging = false;
 let lastX = 0;
 let lastY = 0;
 
-document.addEventListener("mousedown", (e) => {
-  if (drawMode) return;
+document.addEventListener("mousedown",(e)=>{
+  if(e.target.closest(".node") || e.target.tagName==="IFRAME") return;
 
-  if (e.target.classList.contains("node") || e.target.tagName === "IFRAME") {
-    dragEl = e.target;
-  } else {
-    draggingWorld = true;
-  }
-
+  dragging = true;
   lastX = e.clientX;
   lastY = e.clientY;
 });
 
-document.addEventListener("mousemove", (e) => {
-  let dx = e.clientX - lastX;
-  let dy = e.clientY - lastY;
+document.addEventListener("mousemove",(e)=>{
+  if(!dragging) return;
 
-  if (dragEl) {
-    dragEl.style.left = (parseFloat(dragEl.style.left || 0) + dx) + "px";
-    dragEl.style.top  = (parseFloat(dragEl.style.top || 0) + dy) + "px";
-  }
-
-  if (draggingWorld) {
-    x += dx;
-    y += dy;
-    update();
-  }
+  camX += e.clientX - lastX;
+  camY += e.clientY - lastY;
 
   lastX = e.clientX;
   lastY = e.clientY;
+
+  renderCamera();
 });
 
-document.addEventListener("mouseup", () => {
-  dragEl = null;
-  draggingWorld = false;
-});
+document.addEventListener("mouseup",()=>dragging=false);
 
-/* ZOOM */
-document.addEventListener("wheel", (e) => {
+/* ZOOM (FIXED) */
+document.addEventListener("wheel",(e)=>{
   e.preventDefault();
 
-  let zoom = e.deltaY > 0 ? 0.9 : 1.1;
-  scale *= zoom;
+  let old = scale;
+  scale += e.deltaY * -0.001;
   scale = Math.max(0.2, Math.min(4, scale));
 
-  update();
-}, { passive:false });
+  renderCamera();
+},{passive:false});
 
 /* TEXT */
-function createText() {
+function addText(){
   const el = document.createElement("div");
   el.className = "node";
   el.contentEditable = true;
   el.innerText = "Drag me";
-  el.style.left = "300px";
-  el.style.top = "300px";
+  el.style.left = "500px";
+  el.style.top = "500px";
+
   world.appendChild(el);
 }
 
 /* YOUTUBE */
-function createYT() {
+function addYT(){
   let url = prompt("Paste YouTube link:");
-  if (!url) return;
+  if(!url) return;
 
   let id;
 
-  if (url.includes("v=")) {
+  if(url.includes("v=")){
     id = url.split("v=")[1].split("&")[0];
-  } else if (url.includes("youtu.be/")) {
+  } else if(url.includes("youtu.be/")){
     id = url.split("youtu.be/")[1];
   }
 
-  if (!id) {
-    alert("Invalid link");
-    return;
-  }
+  if(!id) return alert("Invalid link");
 
   const iframe = document.createElement("iframe");
   iframe.src = "https://www.youtube.com/embed/" + id;
-  iframe.style.left = "400px";
-  iframe.style.top = "300px";
+  iframe.style.left = "600px";
+  iframe.style.top = "600px";
 
   world.appendChild(iframe);
 }
@@ -221,50 +195,44 @@ function createYT() {
 /* DRAW (WORLD-BASED) */
 let drawMode = false;
 let drawing = false;
-let currentCanvas = null;
+let canvas = null;
 let ctx = null;
 
-function toggleDraw() {
+function toggleDraw(){
   drawMode = !drawMode;
   alert("Draw: " + (drawMode ? "ON" : "OFF"));
 }
 
-document.addEventListener("mousedown", (e) => {
-  if (!drawMode) return;
+document.addEventListener("mousedown",(e)=>{
+  if(!drawMode) return;
+  if(e.target.closest("#ui")) return;
 
-  const rect = world.getBoundingClientRect();
+  canvas = document.createElement("canvas");
+  canvas.width = 600;
+  canvas.height = 600;
+  canvas.className = "draw";
 
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  canvas.style.left = (e.clientX - camX) + "px";
+  canvas.style.top  = (e.clientY - camY) + "px";
 
-  currentCanvas = document.createElement("canvas");
-  currentCanvas.width = 400;
-  currentCanvas.height = 400;
-  currentCanvas.className = "draw";
+  ctx = canvas.getContext("2d");
+  world.appendChild(canvas);
 
-  currentCanvas.style.left = x + "px";
-  currentCanvas.style.top = y + "px";
-
-  world.appendChild(currentCanvas);
-
-  ctx = currentCanvas.getContext("2d");
   drawing = true;
 });
 
-document.addEventListener("mousemove", (e) => {
-  if (!drawing || !ctx) return;
+document.addEventListener("mousemove",(e)=>{
+  if(!drawing || !ctx) return;
 
-  const rect = currentCanvas.getBoundingClientRect();
+  const x = (e.clientX - camX);
+  const y = (e.clientY - camY);
 
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
-  ctx.fillRect(x, y, 3, 3);
+  ctx.fillRect(x % 600, y % 600, 3, 3);
 });
 
-document.addEventListener("mouseup", () => {
+document.addEventListener("mouseup",()=>{
   drawing = false;
-  currentCanvas = null;
+  canvas = null;
   ctx = null;
 });
 </script>
