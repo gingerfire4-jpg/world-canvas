@@ -52,6 +52,7 @@ canvas {
   border:1px solid #ccc;
   border-radius:10px;
   margin-top:10px;
+  width:180px;
 }
 
 .item {
@@ -88,9 +89,9 @@ iframe {
   <button id="plus">+</button>
 
   <div id="menu">
-    <div class="item" onclick="addText()">Add Text</div>
-    <div class="item" onclick="addYT()">Add YouTube</div>
-    <div class="item" onclick="toggleDraw()">Draw Mode</div>
+    <div class="item" onclick="addText()">✏️ T — Text</div>
+    <div class="item" onclick="addYT()">📺 YouTube</div>
+    <div class="item" onclick="toggleDraw()">🎨 🖌️ Palette — Draw</div>
 
     <hr>
 
@@ -111,6 +112,7 @@ iframe {
         <option value="10">Large</option>
       </select>
     </div>
+
   </div>
 </div>
 
@@ -123,10 +125,14 @@ const world = document.getElementById("world");
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-/* CAMERA */
-let cam = { x:0, y:0, zoom:1 };
+/* CAMERA (CORE ENGINE) */
+let cam = {
+  x:0,
+  y:0,
+  zoom:1
+};
 
-/* OBJECTS */
+/* OBJECT LIST */
 let objects = [];
 
 /* DRAW SETTINGS */
@@ -134,7 +140,7 @@ let drawMode = false;
 let brushColor = "black";
 let brushSize = 2;
 
-/* UI */
+/* UI MENU */
 document.getElementById("plus").onclick = () => {
   const m = document.getElementById("menu");
   m.style.display = m.style.display === "block" ? "none" : "block";
@@ -163,7 +169,7 @@ function createObject(el, x, y){
   objects.push(obj);
   world.appendChild(el);
 
-  enableDrag(obj);
+  makeDraggable(obj);
 
   render();
 }
@@ -201,12 +207,15 @@ function addYT(){
   createObject(el, cam.x + 200, cam.y + 200);
 }
 
-/* DRAG SYSTEM (WORLD CORRECT) */
-function enableDrag(obj){
+/* =========================
+   FIXED DRAG SYSTEM (WORLD SPACE)
+   ========================= */
+
+function makeDraggable(obj){
 
   let dragging = false;
-  let ox = 0;
-  let oy = 0;
+  let offsetX = 0;
+  let offsetY = 0;
 
   obj.el.addEventListener("mousedown",(e)=>{
 
@@ -214,8 +223,11 @@ function enableDrag(obj){
 
     dragging = true;
 
-    ox = (e.clientX / cam.zoom) + cam.x - obj.x;
-    oy = (e.clientY / cam.zoom) + cam.y - obj.y;
+    const wx = cam.x + e.clientX / cam.zoom;
+    const wy = cam.y + e.clientY / cam.zoom;
+
+    offsetX = wx - obj.x;
+    offsetY = wy - obj.y;
 
     e.stopPropagation();
   });
@@ -223,8 +235,11 @@ function enableDrag(obj){
   document.addEventListener("mousemove",(e)=>{
     if(!dragging) return;
 
-    obj.x = (e.clientX / cam.zoom) + cam.x - ox;
-    obj.y = (e.clientY / cam.zoom) + cam.y - oy;
+    const wx = cam.x + e.clientX / cam.zoom;
+    const wy = cam.y + e.clientY / cam.zoom;
+
+    obj.x = wx - offsetX;
+    obj.y = wy - offsetY;
 
     render();
   });
@@ -235,7 +250,7 @@ function enableDrag(obj){
 }
 
 /* =========================
-   RENDER SYSTEM
+   RENDER OBJECTS
    ========================= */
 
 function render(){
@@ -250,7 +265,7 @@ function render(){
 }
 
 /* =========================
-   PAN
+   CAMERA PAN
    ========================= */
 
 let draggingCam = false;
@@ -277,8 +292,12 @@ canvas.addEventListener("mousemove",(e)=>{
   render();
 });
 
+canvas.addEventListener("mouseup",()=>{
+  draggingCam = false;
+});
+
 /* =========================
-   ZOOM (FIXED WORLD ZOOM)
+   ZOOM (FIXED)
    ========================= */
 
 canvas.addEventListener("wheel",(e)=>{
@@ -301,19 +320,16 @@ canvas.addEventListener("wheel",(e)=>{
 },{passive:false});
 
 /* =========================
-   DRAWING (FIXED)
+   DRAWING LAYER (BACKGROUND ONLY)
    ========================= */
 
 canvas.addEventListener("mousemove",(e)=>{
 
   if(!drawMode || !e.buttons) return;
 
-  const x = e.clientX;
-  const y = e.clientY;
-
   ctx.fillStyle = brushColor;
   ctx.beginPath();
-  ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+  ctx.arc(e.clientX, e.clientY, brushSize, 0, Math.PI * 2);
   ctx.fill();
 });
 
