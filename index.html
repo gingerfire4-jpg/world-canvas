@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>World Canvas FIXED</title>
+<title>World Canvas FIXED ENGINE</title>
 
 <style>
 body {
@@ -11,7 +11,7 @@ body {
   font-family:Arial;
 }
 
-/* CANVAS (DRAW LAYER) */
+/* DRAW LAYER */
 canvas {
   position:fixed;
   top:0;
@@ -27,15 +27,14 @@ canvas {
   z-index:2;
 }
 
-/* OBJECTS */
 .node {
   position:absolute;
   background:white;
   border:1px solid #ccc;
   border-radius:8px;
   padding:8px;
-  user-select:none;
   cursor:grab;
+  user-select:none;
 }
 
 iframe {
@@ -44,25 +43,7 @@ iframe {
   border:none;
 }
 
-/* UI */
-#ui {
-  position:fixed;
-  top:20px;
-  right:20px;
-  z-index:9999;
-}
-
-#plus {
-  width:50px;
-  height:50px;
-  border-radius:50%;
-  background:#0b1b3a;
-  color:white;
-  border:none;
-  font-size:22px;
-}
-
-/* RULES OVERLAY */
+/* RULES */
 #rules {
   position:fixed;
   top:50%;
@@ -71,33 +52,24 @@ iframe {
   background:white;
   padding:20px;
   border-radius:10px;
-  border:2px solid #000;
+  border:2px solid black;
   z-index:99999;
-  width:300px;
-  text-align:center;
 }
 </style>
 </head>
 
 <body>
 
-<!-- RULES (FIXED CENTER POPUP) -->
 <div id="rules">
   <h2>Rules</h2>
-  <p>No nude content</p>
   <p>No illegal content</p>
-  <p>Respect the canvas space</p>
-  <button onclick="document.getElementById('rules').style.display='none'">
-    Enter
-  </button>
+  <p>No NSFW content</p>
+  <p>Respect canvas space</p>
+  <button onclick="this.parentElement.style.display='none'">Enter</button>
 </div>
 
 <canvas id="canvas"></canvas>
 <div id="world"></div>
-
-<div id="ui">
-  <button id="plus">+</button>
-</div>
 
 <script>
 
@@ -114,16 +86,16 @@ let cam = { x:0, y:0, zoom:1 };
 /* OBJECTS */
 let objects = [];
 
-/* DRAWING DATA (FIXED WORLD STORAGE) */
+/* DRAW STORAGE (WORLD SPACE) */
 let strokes = [];
-let currentStroke = null;
+let current = null;
 
 /* =========================
-   OBJECT CREATION
+   WORLD OBJECTS
    ========================= */
 
-function createObject(el,x,y){
-  let obj = { el, x, y };
+function create(el,x,y){
+  let obj = {el,x,y};
   objects.push(obj);
   world.appendChild(el);
   drag(obj);
@@ -133,10 +105,10 @@ function createObject(el,x,y){
 /* TEXT */
 function addText(){
   let el = document.createElement("div");
-  el.className = "node";
-  el.contentEditable = true;
-  el.innerText = "Text";
-  createObject(el, cam.x+200, cam.y+200);
+  el.className="node";
+  el.contentEditable=true;
+  el.innerText="Text";
+  create(el, cam.x+200, cam.y+200);
 }
 
 /* YOUTUBE */
@@ -149,19 +121,19 @@ function addYT(){
     : url.split("youtu.be/")[1];
 
   let el = document.createElement("div");
-  el.className = "node";
+  el.className="node";
   el.style.padding="0";
 
-  let iframe = document.createElement("iframe");
-  iframe.src = "https://www.youtube.com/embed/"+id;
+  let iframe=document.createElement("iframe");
+  iframe.src="https://www.youtube.com/embed/"+id;
 
   el.appendChild(iframe);
 
-  createObject(el, cam.x+200, cam.y+200);
+  create(el, cam.x+200, cam.y+200);
 }
 
 /* =========================
-   DRAG FIX (WORLD SPACE)
+   DRAG WORLD OBJECTS
    ========================= */
 
 function drag(obj){
@@ -169,7 +141,6 @@ function drag(obj){
   let down=false, offX=0, offY=0;
 
   obj.el.addEventListener("mousedown",(e)=>{
-
     down=true;
 
     let wx = cam.x + e.clientX/cam.zoom;
@@ -195,7 +166,7 @@ function drag(obj){
 }
 
 /* =========================
-   RENDER OBJECTS
+   RENDER WORLD OBJECTS
    ========================= */
 
 function render(){
@@ -210,16 +181,16 @@ function render(){
    CAMERA MOVE
    ========================= */
 
-let dragCam=false,last={x:0,y:0};
+let dragging=false,last={x:0,y:0};
 
 canvas.addEventListener("mousedown",(e)=>{
-  dragCam=true;
+  dragging=true;
   last.x=e.clientX;
   last.y=e.clientY;
 });
 
 canvas.addEventListener("mousemove",(e)=>{
-  if(!dragCam) return;
+  if(!dragging) return;
 
   cam.x -= (e.clientX-last.x)/cam.zoom;
   cam.y -= (e.clientY-last.y)/cam.zoom;
@@ -230,10 +201,10 @@ canvas.addEventListener("mousemove",(e)=>{
   render();
 });
 
-canvas.addEventListener("mouseup",()=>dragCam=false);
+canvas.addEventListener("mouseup",()=>dragging=false);
 
 /* =========================
-   ZOOM (FIXED)
+   ZOOM FIXED
    ========================= */
 
 canvas.addEventListener("wheel",(e)=>{
@@ -241,57 +212,53 @@ canvas.addEventListener("wheel",(e)=>{
 
   let mx=e.clientX,my=e.clientY;
 
-  let wx = cam.x + mx/cam.zoom;
-  let wy = cam.y + my/cam.zoom;
+  let wx=cam.x+mx/cam.zoom;
+  let wy=cam.y+my/cam.zoom;
 
-  cam.zoom *= (e.deltaY<0)?1.1:0.9;
+  cam.zoom*=(e.deltaY<0)?1.1:0.9;
   cam.zoom=Math.max(0.2,Math.min(6,cam.zoom));
 
-  cam.x = wx - mx/cam.zoom;
-  cam.y = wy - my/cam.zoom;
+  cam.x=wx-mx/cam.zoom;
+  cam.y=wy-my/cam.zoom;
 
   render();
 
 },{passive:false});
 
 /* =========================
-   DRAWING (WORLD LOCKED FIX)
+   DRAWING (FIXED WORLD SPACE)
    ========================= */
 
 canvas.addEventListener("mousedown",(e)=>{
-  currentStroke = [];
-  strokes.push(currentStroke);
+  current=[];
+  strokes.push(current);
 });
 
 canvas.addEventListener("mousemove",(e)=>{
-
   if(!e.buttons) return;
 
-  let x = cam.x + e.clientX/cam.zoom;
-  let y = cam.y + e.clientY/cam.zoom;
+  let x=cam.x+e.clientX/cam.zoom;
+  let y=cam.y+e.clientY/cam.zoom;
 
-  currentStroke.push({x,y});
+  current.push({x,y});
 
-  drawAll();
+  draw();
 });
 
-/* REDRAW ALL STROKES */
-function drawAll(){
+function draw(){
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   ctx.fillStyle="black";
 
   for(let s of strokes){
-
     for(let p of s){
 
       ctx.beginPath();
       ctx.arc(
-        (p.x - cam.x)*cam.zoom,
-        (p.y - cam.y)*cam.zoom,
-        2,
-        0,Math.PI*2
+        (p.x-cam.x)*cam.zoom,
+        (p.y-cam.y)*cam.zoom,
+        2,0,Math.PI*2
       );
       ctx.fill();
     }
