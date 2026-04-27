@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>World Canvas - Full Edition</title>
+<title>World Canvas - Full Pro Edition</title>
 
 <style>
 body {
@@ -180,16 +180,30 @@ input[type="range"] { width:120px; }
   position:fixed; top:20px; left:20px; background:rgba(20,20,30,0.95);
   padding:12px 15px; border-radius:12px; z-index:9999; color:#fff; font-size:13px;
   border:1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+}
+
+#logoutBtn {
+  background:rgba(239,68,68,0.8);
+  color:white;
+  border:none;
+  padding:4px 10px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:11px;
+  margin-left:10px;
 }
 
 /* RULES */
 #rulesOverlay {
   position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);
   display:flex; align-items:center; justify-content:center; z-index:10000;
+  backdrop-filter: blur(4px);
 }
 #stickyNote {
   background:#fef3c7; border:3px solid #f59e0b; border-radius:8px;
   padding:24px; width:320px; text-align:center; color:#333;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 </style>
 </head>
@@ -209,17 +223,18 @@ input[type="range"] { width:120px; }
 
 <div id="userInfo">
   <span id="username">👤 Guest</span> | <span id="userCity">🌍 World</span>
-  <button onclick="logout()" style="margin-left:10px; background:#ef4444; border:none; color:white; padding:4px 8px; border-radius:4px; cursor:pointer;">Logout</button>
+  <button id="logoutBtn" onclick="logout()">Logout</button>
 </div>
 
 <div id="rulesOverlay">
   <div id="stickyNote">
-    <h2>📋 Rules</h2>
-    <ul style="text-align:left; font-size:13px;">
-      <li>❌ No offensive content</li>
-      <li>✅ Be respectful & creative</li>
+    <h2 style="color:#d97706">📋 Rules</h2>
+    <ul style="text-align:left; font-size:13px; list-style:none; padding:0;">
+      <li style="margin-bottom:8px">❌ No offensive content</li>
+      <li style="margin-bottom:8px">✅ Be respectful & creative</li>
+      <li style="margin-bottom:8px">✅ Collaborate with others</li>
     </ul>
-    <button onclick="closeStickyNote()" style="background:#d97706; color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer;">Got it!</button>
+    <button onclick="closeStickyNote()" style="background:#d97706; color:white; border:none; padding:10px 25px; border-radius:6px; cursor:pointer; font-weight:bold; margin-top:10px;">Got it!</button>
   </div>
 </div>
 
@@ -346,11 +361,11 @@ function saveAll() {
       colorClass: o.colorClass, opacity: o.opacity
     }))
   };
-  localStorage.setItem("world_canvas_full_save", JSON.stringify(data));
+  localStorage.setItem("world_canvas_final_save", JSON.stringify(data));
 }
 
 function loadAll() {
-  const saved = localStorage.getItem("world_canvas_full_save");
+  const saved = localStorage.getItem("world_canvas_final_save");
   if (!saved) return;
   const data = JSON.parse(saved);
   strokes = data.strokes || [];
@@ -370,8 +385,14 @@ function toWorld(x, y) { return { x: (x / cam.zoom) + cam.x, y: (y / cam.zoom) +
 function toScreen(pos) { return { x: (pos.x - cam.x) * cam.zoom, y: (pos.y - cam.y) * cam.zoom }; }
 
 /** UI FUNCTIONS **/
-function closeStickyNote() { document.getElementById("rulesOverlay").style.display = "none"; }
-function logout() { localStorage.removeItem("currentUser"); window.location.href = "login.html"; }
+function closeStickyNote() { 
+  document.getElementById("rulesOverlay").style.display = "none"; 
+}
+
+function logout() { 
+  localStorage.removeItem("currentUser"); 
+  window.location.href = "login.html"; 
+}
 
 function setTextColor(color, e) {
   textColor = color;
@@ -532,6 +553,7 @@ function recreateWeather(data) {
 function fetchWeather(city) {
   fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`)
     .then(r => r.json()).then(data => {
+      if(!data.results) return;
       let loc = data.results[0];
       fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m`)
         .then(r => r.json()).then(w => {
@@ -592,21 +614,4 @@ canvas.addEventListener("mousedown", (e) => {
 
 window.addEventListener("mousemove", (e) => {
   if (isPanning) {
-    cam.x -= (e.clientX - lastM.x) / cam.zoom;
-    cam.y -= (e.clientY - lastM.y) / cam.zoom;
-    lastM = { x: e.clientX, y: e.clientY };
-    render();
-  } else if (drawMode && currentStroke) {
-    currentStroke.points.push(toWorld(e.clientX, e.clientY));
-  }
-});
-
-window.addEventListener("mouseup", () => { isPanning = false; if(currentStroke) { currentStroke = null; saveAll(); } });
-
-canvas.addEventListener("wheel", (e) => {
-  e.preventDefault();
-  let mouseW = toWorld(e.clientX, e.clientY);
-  cam.zoom *= (e.deltaY < 0) ? 1.1 : 0.9;
-  cam.zoom = Math.max(0.1, Math.min(5, cam.zoom));
-  let mouseA = toWorld(e.clientX, e.clientY);
-  
+    
