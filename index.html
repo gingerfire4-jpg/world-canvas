@@ -1,3 +1,123 @@
+
+
+
+4 Files Changed
++670
+-151
+
+FEATURES_SUMMARY.md
+A
++83
+
+index.html
++550
+-66
+
+login.html
++36
+-85
+
+world-canvas
+A
++1
+4 Files Changed
++670
+-151
+# World Canvas - Feature Enhancement Summary
+
+## Drawing Tool Enhancements
+
+### New Drawing Tools Added:
+1. **Line Tool** (📏) - Draw straight lines
+2. **Arrow Tool** (➤) - Draw arrows with directional heads
+3. **Diamond Tool** (◆) - Draw diamond/rhombus shapes
+4. **Eraser Tool** (🧽) - Erase drawings and shapes by clicking/dragging
+
+### Stroke Style Options:
+- **Solid** - Continuous line (default)
+- **Dashed** - Dashed line pattern
+- **Dotted** - Dotted line pattern
+
+### Enhanced Features:
+- **Increased brush size range**: Now supports up to 30px (was 20px)
+- **Stroke style persistence**: Each drawing remembers its style
+- **Shape style support**: All shapes (rect, circle, line, arrow, diamond) support stroke styles
+
+## YouTube Box Improvements
+
+### Resizable YouTube Player:
+- YouTube video boxes now have resize handles (like other nodes)
+- Can be resized by dragging the bottom-right corner
+- Minimum size: 100x100px
+- Maintains aspect ratio when resizing
+- Rounded corners (8px border radius) for better appearance
+
+## User Interface Updates
+
+### Toolbar Reorganization:
+- Added visual separators between tool groups
+- Drawing tools section now includes:
+  - Free draw (🖌️)
+  - Line (📏)
+  - Arrow (➤)
+  - Rectangle (▭)
+  - Circle (○)
+  - Diamond (◆)
+  - Eraser (🧽)
+  - Undo/Redo
+  - Clear drawings only
+
+### Status Display:
+- Shows current drawing mode (Free Draw, Line, Arrow, Rectangle, Circle, Diamond, Eraser)
+- Visual feedback when modes are active
+
+## Technical Implementation
+
+### New Variables:
+- `drawShape` - Tracks current shape being drawn
+- `eraserMode` - Tracks eraser state
+- `strokeStyle` - Stores current stroke style (solid/dashed/dotted)
+- `drawingShape` - Tracks shape drawing in progress
+
+### New Functions:
+- `setStrokeStyle(style)` - Set stroke style
+- `setEraserMode()` - Toggle eraser mode
+- `clearDrawings()` - Clear only drawings (not objects)
+- `drawArrow(x1, y1, x2, y2, context)` - Draw arrow with head
+- `eraseAt(wx, wy)` - Erase drawings/shapes at position
+
+### Updated Functions:
+- `toggleDraw()` - Reset eraser mode when toggling
+- `setDrawShape(shape)` - Support for all shape types
+- `updateMainCanvas()` - Render all new shapes and styles
+- Mouse event handlers - Support eraser mode and shape drawing
+
+## Data Persistence
+
+All new features are saved to localStorage:
+- Stroke styles for drawings
+- New shape types (line, arrow, diamond)
+- Eraser modifications
+- All existing data remains compatible
+
+## Backward Compatibility
+
+- Existing drawings load correctly
+- Old data format still supported
+- No breaking changes to existing features
+- All original tools remain functional
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>World Canvas</title>
+
+<style>
+body {
+  margin:0;
+  overflow:hidden;
+  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background:#1a1a1a;
 <!DOCTYPE html>
 <html>
 <head>
@@ -86,1065 +206,3 @@ canvas {
 .node:hover .resize-handle {
   opacity:1;
 }
-
-.resize-handle.se {
-  bottom:0;
-  right:0;
-  cursor:nwse-resize;
-}
-
-.node:hover .node-controls {
-  opacity:1;
-  pointer-events:all;
-}
-
-.node-btn {
-  background:rgba(255,255,255,0.1);
-  border:1px solid rgba(255,255,255,0.2);
-  width:28px;
-  height:28px;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:13px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#fff;
-  transition:all 0.2s;
-}
-
-.node-btn:hover {
-  background:rgba(255,255,255,0.2);
-  border-color:rgba(255,255,255,0.4);
-}
-
-iframe {
-  width:320px;
-  height:200px;
-  border:none;
-  border-radius:8px;
-  display:block;
-}
-
-/* TEXT BOXES - COLORED */
-.text-node {
-  background:#2a2a3a;
-  color:#fff;
-  border:2px solid;
-  min-width:200px;
-  max-width:400px;
-  font-size:14px;
-  line-height:1.6;
-  word-wrap:break-word;
-  white-space:pre-wrap;
-  padding:12px;
-}
-
-.text-node.blue { border-color:#3b82f6; background:rgba(59,130,246,0.15); }
-.text-node.purple { border-color:#a855f7; background:rgba(168,85,247,0.15); }
-.text-node.pink { border-color:#ec4899; background:rgba(236,72,153,0.15); }
-.text-node.red { border-color:#ef4444; background:rgba(239,68,68,0.15); }
-.text-node.orange { border-color:#f97316; background:rgba(249,115,22,0.15); }
-.text-node.green { border-color:#10b981; background:rgba(16,185,129,0.15); }
-.text-node.cyan { border-color:#06b6d4; background:rgba(6,182,212,0.15); }
-.text-node.yellow { border-color:#eab308; background:rgba(234,179,8,0.15); }
-
-/* WEATHER WIDGET */
-.weather-widget {
-  background:linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(139,92,246,0.2) 100%);
-  color:white;
-  padding:15px;
-  border-radius:12px;
-  min-width:280px;
-  font-size:13px;
-  line-height:1.6;
-  border:2px solid rgba(99,102,241,0.4);
-}
-
-.weather-widget h3 {
-  margin:0 0 10px 0;
-  font-size:16px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.weather-temp {
-  font-size:28px;
-  font-weight:bold;
-  color:#60a5fa;
-}
-
-.weather-desc {
-  opacity:0.85;
-  margin-bottom:10px;
-  font-size:12px;
-}
-
-.weather-info {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
-  font-size:11px;
-  background:rgba(0,0,0,0.3);
-  padding:8px;
-  border-radius:8px;
-}
-
-.weather-info-item {
-  display:flex;
-  justify-content:space-between;
-}
-
-/* USER INFO */
-#userInfo {
-  position:fixed;
-  top:20px;
-  left:20px;
-  background:rgba(20,20,30,0.95);
-  padding:12px 15px;
-  border-radius:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.5);
-  font-size:13px;
-  z-index:9999;
-  border:1px solid rgba(255,255,255,0.1);
-  backdrop-filter:blur(8px);
-  color:#fff;
-}
-
-#userInfo strong {
-  color:#60a5fa;
-}
-
-#logoutBtn {
-  background:rgba(239,68,68,0.8);
-  color:white;
-  border:1px solid rgba(239,68,68,1);
-  padding:6px 12px;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:11px;
-  margin-left:10px;
-  transition:all 0.2s;
-}
-
-#logoutBtn:hover {
-  background:rgba(239,68,68,1);
-  box-shadow:0 0 8px rgba(239,68,68,0.6);
-}
-
-/* TOOLBAR */
-#ui {
-  position:fixed;
-  top:20px;
-  right:20px;
-  z-index:9999;
-}
-
-.toolbar {
-  background:rgba(20,20,30,0.95);
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:12px;
-  padding:12px;
-  backdrop-filter:blur(8px);
-  box-shadow:0 4px 20px rgba(0,0,0,0.5);
-}
-
-.toolbar-section {
-  margin-bottom:12px;
-}
-
-.toolbar-section:last-child {
-  margin-bottom:0;
-}
-
-.toolbar-label {
-  color:#9ca3af;
-  font-size:11px;
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:0.5px;
-  margin-bottom:6px;
-  display:block;
-}
-
-/* COLOR PICKER */
-.color-picker {
-  display:flex;
-  gap:6px;
-  flex-wrap:wrap;
-  width:260px;
-}
-
-.color-btn {
-  width:32px;
-  height:32px;
-  border-radius:8px;
-  border:2px solid transparent;
-  cursor:pointer;
-  transition:all 0.2s;
-  box-shadow:0 2px 8px rgba(0,0,0,0.3);
-}
-
-.color-btn:hover {
-  transform:scale(1.1);
-  box-shadow:0 4px 12px rgba(0,0,0,0.5);
-}
-
-.color-btn.active {
-  border-color:#fff;
-  box-shadow:0 0 12px rgba(255,255,255,0.4);
-}
-
-.blue-btn { background:#3b82f6; }
-.purple-btn { background:#a855f7; }
-.pink-btn { background:#ec4899; }
-.red-btn { background:#ef4444; }
-.orange-btn { background:#f97316; }
-.green-btn { background:#10b981; }
-.cyan-btn { background:#06b6d4; }
-.yellow-btn { background:#eab308; }
-.white-btn { background:#f3f4f6; }
-
-/* STROKE COLOR PICKER */
-.stroke-colors {
-  display:flex;
-  gap:4px;
-  flex-wrap:wrap;
-}
-
-.stroke-color {
-  width:24px;
-  height:24px;
-  border-radius:6px;
-  border:2px solid transparent;
-  cursor:pointer;
-  transition:all 0.2s;
-}
-
-.stroke-color:hover {
-  transform:scale(1.15);
-}
-
-.stroke-color.active {
-  border-color:#fff;
-  box-shadow:0 0 8px rgba(255,255,255,0.5);
-}
-
-/* SLIDERS */
-.slider-group {
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-
-.slider-group label {
-  color:#fff;
-  font-size:12px;
-  font-weight:600;
-  min-width:40px;
-}
-
-input[type="range"] {
-  width:140px;
-  height:6px;
-  border-radius:3px;
-  background:rgba(255,255,255,0.1);
-  outline:none;
-  -webkit-appearance:none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance:none;
-  appearance:none;
-  width:16px;
-  height:16px;
-  border-radius:50%;
-  background:#7c3aed;
-  cursor:pointer;
-  box-shadow:0 2px 6px rgba(0,0,0,0.3);
-  transition:all 0.2s;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-  background:#8b5cf6;
-  box-shadow:0 0 8px rgba(124,58,237,0.6);
-}
-
-input[type="range"]::-moz-range-thumb {
-  width:16px;
-  height:16px;
-  border-radius:50%;
-  background:#7c3aed;
-  cursor:pointer;
-  border:none;
-  box-shadow:0 2px 6px rgba(0,0,0,0.3);
-}
-
-/* ICON TOOLBAR */
-.icon-toolbar {
-  display:flex;
-  gap:4px;
-  flex-wrap:wrap;
-}
-
-.icon-btn {
-  width:40px;
-  height:40px;
-  border-radius:8px;
-  background:rgba(255,255,255,0.1);
-  border:1px solid rgba(255,255,255,0.2);
-  color:#fff;
-  cursor:pointer;
-  font-size:18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:all 0.2s;
-}
-
-.icon-btn:hover {
-  background:rgba(255,255,255,0.15);
-  border-color:rgba(255,255,255,0.4);
-  box-shadow:0 0 8px rgba(124,58,237,0.4);
-}
-
-.icon-btn.active {
-  background:#7c3aed;
-  border-color:#a855f7;
-  box-shadow:0 0 12px rgba(124,58,237,0.6);
-}
-
-#drawStatus {
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  background:rgba(239,68,68,0.9);
-  color:white;
-  padding:12px 16px;
-  border-radius:8px;
-  display:none;
-  z-index:9998;
-  font-size:13px;
-  font-weight:600;
-  border:1px solid rgba(239,68,68,1);
-  box-shadow:0 4px 12px rgba(239,68,68,0.4);
-  backdrop-filter:blur(8px);
-}
-
-#drawStatus.active {
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-
-/* RULES STICKY NOTE */
-#rulesOverlay {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.7);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:10000;
-  backdrop-filter:blur(4px);
-}
-
-#stickyNote {
-  background:#fef3c7;
-  border:3px solid #f59e0b;
-  border-radius:8px;
-  padding:24px;
-  width:320px;
-  box-shadow:0 12px 24px rgba(0,0,0,0.4), -4px 4px 0px rgba(0,0,0,0.2);
-  transform:rotate(-2deg);
-  text-align:center;
-}
-
-#stickyNote h2 {
-  margin:0 0 15px 0;
-  color:#d97706;
-  font-size:20px;
-  font-weight:700;
-}
-
-#stickyNote ul {
-  list-style:none;
-  padding:0;
-  margin:0 0 15px 0;
-  text-align:left;
-  font-size:13px;
-  color:#333;
-}
-
-#stickyNote li {
-  padding:6px 0;
-  border-bottom:1px solid #fed7aa;
-}
-
-#stickyNote li:last-child {
-  border-bottom:none;
-}
-
-#stickyNote button {
-  background:#d97706;
-  color:white;
-  border:none;
-  padding:8px 20px;
-  font-size:14px;
-  border-radius:6px;
-  cursor:pointer;
-  transition:all 0.2s;
-  font-weight:600;
-}
-
-#stickyNote button:hover {
-  background:#b45309;
-  transform:scale(1.05);
-}
-
-/* SELECT STYLED */
-select {
-  background:rgba(255,255,255,0.1);
-  color:#fff;
-  border:1px solid rgba(255,255,255,0.2);
-  padding:6px 10px;
-  border-radius:6px;
-  font-size:12px;
-  cursor:pointer;
-  transition:all 0.2s;
-}
-
-select:hover {
-  border-color:rgba(255,255,255,0.4);
-  background:rgba(255,255,255,0.15);
-}
-
-select option {
-  background:#1a1a1a;
-  color:#fff;
-}
-
-</style>
-</head>
-
-<body>
-
-<canvas id="canvas"></canvas>
-<div id="world"></div>
-
-<div id="drawStatus">🖌️ Drawing Mode ON</div>
-
-<!-- USER INFO -->
-<div id="userInfo">
-  <span id="username"></span>
-  <span id="userCity"></span>
-  <button id="logoutBtn" onclick="logout()">Logout</button>
-</div>
-
-<!-- RULES STICKY NOTE -->
-<div id="rulesOverlay">
-  <div id="stickyNote">
-    <h2>📋 Rules</h2>
-    <ul>
-      <li>❌ No nude photos</li>
-      <li>❌ No rude drawings</li>
-      <li>❌ No offensive content</li>
-      <li>✅ Be respectful & creative</li>
-      <li>✅ Enjoy & collaborate</li>
-    </ul>
-    <button onclick="closeStickyNote()">Got it!</button>
-  </div>
-</div>
-
-<!-- MODERN TOOLBAR -->
-<div id="ui">
-  <div class="toolbar">
-    
-    <!-- TEXT COLOR PICKER -->
-    <div class="toolbar-section">
-      <label class="toolbar-label">Text Color</label>
-      <div class="color-picker">
-        <button class="color-btn blue-btn active" onclick="setTextColor('blue')" title="Blue"></button>
-        <button class="color-btn purple-btn" onclick="setTextColor('purple')" title="Purple"></button>
-        <button class="color-btn pink-btn" onclick="setTextColor('pink')" title="Pink"></button>
-        <button class="color-btn red-btn" onclick="setTextColor('red')" title="Red"></button>
-        <button class="color-btn orange-btn" onclick="setTextColor('orange')" title="Orange"></button>
-        <button class="color-btn green-btn" onclick="setTextColor('green')" title="Green"></button>
-        <button class="color-btn cyan-btn" onclick="setTextColor('cyan')" title="Cyan"></button>
-        <button class="color-btn yellow-btn" onclick="setTextColor('yellow')" title="Yellow"></button>
-      </div>
-    </div>
-
-    <!-- TEXT OPACITY -->
-    <div class="toolbar-section">
-      <div class="slider-group">
-        <label>Opacity</label>
-        <input type="range" id="textOpacity" min="0" max="100" value="100" oninput="updateTextOpacity(this.value)">
-        <span id="opacityValue" style="color:#fff; font-size:12px; min-width:30px;">100%</span>
-      </div>
-    </div>
-
-    <!-- STROKE SETTINGS -->
-    <div class="toolbar-section">
-      <label class="toolbar-label">Stroke Color</label>
-      <div class="stroke-colors">
-        <button class="stroke-color" style="background:#000" onclick="setStrokeColor('black')" title="Black"></button>
-        <button class="stroke-color" style="background:#ef4444" onclick="setStrokeColor('red')" title="Red"></button>
-        <button class="stroke-color" style="background:#3b82f6" onclick="setStrokeColor('blue')" title="Blue"></button>
-        <button class="stroke-color" style="background:#10b981" onclick="setStrokeColor('green')" title="Green"></button>
-        <button class="stroke-color" style="background:#a855f7" onclick="setStrokeColor('purple')" title="Purple"></button>
-        <button class="stroke-color" style="background:#f97316" onclick="setStrokeColor('orange')" title="Orange"></button>
-        <button class="stroke-color" style="background:#fff" onclick="setStrokeColor('white')" title="White"></button>
-      </div>
-    </div>
-
-    <!-- STROKE WIDTH -->
-    <div class="toolbar-section">
-      <div class="slider-group">
-        <label>Width</label>
-        <input type="range" id="brushSize" min="1" max="20" value="3" oninput="updateBrushSize(this.value)">
-        <span id="sizeValue" style="color:#fff; font-size:12px; min-width:20px;">3</span>
-      </div>
-    </div>
-
-    <!-- STROKE OPACITY -->
-    <div class="toolbar-section">
-      <div class="slider-group">
-        <label>Draw Opacity</label>
-        <input type="range" id="drawOpacity" min="0" max="100" value="100" oninput="updateDrawOpacity(this.value)">
-        <span id="drawOpacityValue" style="color:#fff; font-size:12px; min-width:30px;">100%</span>
-      </div>
-    </div>
-
-    <!-- BG COLOR -->
-    <div class="toolbar-section">
-      <label class="toolbar-label">Background</label>
-      <div class="color-picker">
-        <button class="color-btn active" onclick="setBgColor('#1a1a1a')" style="background:#1a1a1a; border-color:#7c3aed;" title="Dark"></button>
-        <button class="color-btn" onclick="setBgColor('#0f0f1e')" style="background:#0f0f1e;" title="Darker"></button>
-        <button class="color-btn" onclick="setBgColor('#1e293b')" style="background:#1e293b;" title="Slate"></button>
-        <button class="color-btn" onclick="setBgColor('#0d1117')" style="background:#0d1117;" title="Black"></button>
-        <button class="color-btn" onclick="setBgColor('#1a1625')" style="background:#1a1625;" title="Purple"></button>
-        <button class="color-btn" onclick="setBgColor('#0f172a')" style="background:#0f172a;" title="Blue"></button>
-      </div>
-    </div>
-
-    <!-- ACTION BUTTONS -->
-    <div class="toolbar-section">
-      <label class="toolbar-label">Tools</label>
-      <div class="icon-toolbar">
-        <button class="icon-btn" onclick="addText()" title="Add Text">📝</button>
-        <button class="icon-btn" onclick="addYT()" title="Add YouTube">▶️</button>
-        <button class="icon-btn" onclick="addWeather()" title="Add Weather">🌤️</button>
-        <button class="icon-btn" id="drawBtn" onclick="toggleDraw()" title="Draw">🖌️</button>
-        <button class="icon-btn" onclick="clearAll()" title="Clear All">🗑️</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<script>
-
-// Check if user is logged in
-let currentUser=JSON.parse(localStorage.getItem("currentUser"));
-if(!currentUser){
-  window.location.href="login.html";
-}
-
-// Display user info
-document.getElementById("username").textContent="👤 "+currentUser.username;
-document.getElementById("userCity").textContent="🌍 "+currentUser.city;
-
-function logout(){
-  localStorage.removeItem("currentUser");
-  window.location.href="login.html";
-}
-
-const canvas=document.getElementById("canvas");
-const ctx=canvas.getContext("2d");
-const world=document.getElementById("world");
-
-canvas.width=innerWidth;
-canvas.height=innerHeight;
-
-window.addEventListener('resize',()=>{
-  canvas.width=innerWidth;
-  canvas.height=innerHeight;
-  draw();
-});
-
-function closeStickyNote(){
-  document.getElementById("rulesOverlay").style.display="none";
-}
-
-/* CAMERA */
-let cam={x:0,y:0,zoom:1};
-
-/* OBJECTS */
-let objects=[];
-let nextId=0;
-
-/* DRAW DATA */
-let strokes=[];
-let current=null;
-
-/* DRAW SETTINGS */
-let drawMode=false;
-let brushColor="black";
-let brushSize=3;
-let drawOpacity=1;
-
-/* TEXT SETTINGS */
-let textColor="blue";
-let textOpacity=1;
-
-/* BG COLOR (LOCAL ONLY) */
-let bgColor="#1a1a1a";
-
-/* SELECTED OBJECT */
-let selected=null;
-
-/* WEATHER DATA */
-let currentWeather={};
-
-/* TOOLBAR FUNCTIONS */
-function setTextColor(color){
-  textColor=color;
-  document.querySelectorAll('.color-picker .color-btn').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-}
-
-function updateTextOpacity(val){
-  textOpacity=val/100;
-  document.getElementById("opacityValue").textContent=val+"%";
-  if(selected && selected.el.classList.contains('text-node')){
-    selected.el.style.opacity=textOpacity;
-  }
-}
-
-function setStrokeColor(color){
-  brushColor=color;
-  document.querySelectorAll('.stroke-color').forEach(b=>b.classList.remove('active'));
-  if(event.target.classList.contains('stroke-color')){
-    event.target.classList.add('active');
-  }
-}
-
-function updateBrushSize(val){
-  brushSize=val;
-  document.getElementById("sizeValue").textContent=val;
-}
-
-function updateDrawOpacity(val){
-  drawOpacity=val/100;
-  document.getElementById("drawOpacityValue").textContent=val+"%";
-}
-
-function setBgColor(color){
-  bgColor=color;
-  canvas.style.background=color;
-  document.querySelectorAll('.color-picker .color-btn').forEach(b=>b.style.borderColor='transparent');
-  event.target.style.borderColor='#7c3aed';
-  localStorage.setItem("bgColor",color);
-}
-
-function toggleDraw(){
-  drawMode=!drawMode;
-  document.getElementById("drawStatus").classList.toggle("active");
-  document.getElementById("drawBtn").classList.toggle("active");
-}
-
-/* CREATE OBJECTS */
-function create(el,x,y){
-  let id=nextId++;
-  let o={id,el,x,y,width:320,height:200};
-  objects.push(o);
-  world.appendChild(el);
-  
-  // initial size (world units)
-  el.style.width=o.width+"px";
-  el.style.height=o.height+"px";
-  el.style.position="absolute";
-  el.style.overflow="hidden";
-  
-  let controls=document.createElement("div");
-  controls.className="node-controls";
-  let delBtn=document.createElement("button");
-  delBtn.className="node-btn";
-  delBtn.innerHTML="✕";
-  delBtn.onclick=(e)=>{
-    e.stopPropagation();
-    deleteObject(id);
-  };
-  controls.appendChild(delBtn);
-  el.appendChild(controls);
-
-  let resizeHandle=document.createElement("div");
-  resizeHandle.className="resize-handle se";
-  el.appendChild(resizeHandle);
-  
-  resizeHandle(o, resizeHandle);
-  
-  drag(o);
-  render();
-}
-
-function deleteObject(id){
-  let idx=objects.findIndex(o=>o.id===id);
-  if(idx<0) return;
-  objects[idx].el.remove();
-  objects.splice(idx,1);
-  if(selected?.id===id) selected=null;
-  render();
-}
-
-function clearAll(){
-  if(confirm("Clear all objects and drawings?")){
-    objects.forEach(o=>o.el.remove());
-    objects=[];
-    strokes=[];
-    selected=null;
-    draw();
-  }
-}
-
-/* TEXT - COLORED */
-function addText(){
-  let el=document.createElement("div");
-  el.className="node text-node "+textColor;
-  el.contentEditable=true;
-  el.style.opacity=textOpacity;
-  el.innerHTML="<br>";
-  el.onclick=e=>e.stopPropagation();
-  create(el,cam.x+200,cam.y+200);
-  el.focus();
-}
-
-/* YOUTUBE */
-function addYT(){
-  let url=prompt("YouTube URL");
-  if(!url) return;
-
-  let id="";
-  
-  if(url.includes("v=")) {
-    id=url.split("v=")[1].split("&")[0];
-  } else if(url.includes("youtu.be/")) {
-    id=url.split("youtu.be/")[1].split("?")[0];
-  } else {
-    alert("Invalid YouTube URL");
-    return;
-  }
-
-  if(!id || id.length<10) {
-    alert("Could not extract video ID");
-    return;
-  }
-
-  let el=document.createElement("div");
-  el.className="node";
-  el.style.padding="0";
-
-  let iframe=document.createElement("iframe");
-  iframe.src="https://www.youtube.com/embed/"+id+"?modestbranding=1";
-  iframe.allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-  iframe.allowFullscreen=true;
-  iframe.style.width='100%'; iframe.style.height='100%';
-
-  el.appendChild(iframe);
-
-  create(el,cam.x+200,cam.y+200);
-}
-
-/* WEATHER */
-function addWeather(){
-  if(!currentWeather.temp){
-    fetchWeather(currentUser.city);
-    return;
-  }
-  
-  let el=document.createElement("div");
-  el.className="node weather-widget";
-  el.style.padding="0";
-  el.onclick=e=>e.stopPropagation();
-  
-  let city=currentWeather.city || "Unknown";
-  let temp=Math.round(currentWeather.temp) || "N/A";
-  let desc=currentWeather.desc || "No data";
-  let humidity=currentWeather.humidity || "N/A";
-  let wind=currentWeather.wind || "N/A";
-  let feels=Math.round(currentWeather.feels) || "N/A";
-  
-  el.innerHTML=`
-    <div style="padding:15px;">
-      <h3 style="margin:0 0 10px 0; font-size:16px; display:flex; justify-content:space-between;">
-        <span>${city}</span>
-        <span style="font-size:20px;">🌤️</span>
-      </h3>
-      <div style="font-size:24px; font-weight:bold; margin-bottom:8px; color:#60a5fa;">${temp}°C</div>
-      <div style="opacity:0.85; margin-bottom:10px; font-size:12px;">${desc}</div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px; background:rgba(0,0,0,0.3); padding:8px; border-radius:8px;">
-        <div><strong>Feels:</strong> ${feels}°C</div>
-        <div><strong>Wind:</strong> ${wind}m/s</div>
-        <div><strong>Humidity:</strong> ${humidity}%</div>
-      </div>
-    </div>
-  `;
-  
-  create(el,cam.x+200,cam.y+200);
-}
-
-/* FETCH WEATHER - Open-Meteo */
-function fetchWeather(city){
-  let geocodeUrl=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
-  
-  fetch(geocodeUrl)
-    .then(r=>r.json())
-    .then(data=>{
-      if(!data.results || data.results.length===0){
-        alert("City not found: "+city);
-        return;
-      }
-      
-      let location=data.results[0];
-      let lat=location.latitude;
-      let lon=location.longitude;
-      let name=location.name;
-      if(location.admin1) name+=", "+location.admin1;
-      
-      let weatherUrl=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`;
-      
-      return fetch(weatherUrl).then(r=>r.json()).then(weatherData=>{
-        let current=weatherData.current;
-        let weatherDesc=getWeatherDescription(current.weather_code);
-        
-        currentWeather={
-          city:name,
-          temp:current.temperature_2m,
-          feels:current.apparent_temperature,
-          desc:weatherDesc,
-          humidity:current.relative_humidity_2m,
-          wind:(current.wind_speed_10m / 3.6).toFixed(1)
-        };
-        
-        addWeather();
-      });
-    })
-    .catch(e=>{
-      console.error("Weather error:",e);
-      alert("Could not fetch weather");
-    });
-}
-
-function getWeatherDescription(code){
-  const descriptions={
-    0:"Clear sky", 1:"Mainly clear", 2:"Partly cloudy", 3:"Overcast",
-    45:"Foggy", 48:"Foggy", 51:"Light drizzle", 53:"Drizzle", 55:"Heavy drizzle",
-    61:"Slight rain", 63:"Rain", 65:"Heavy rain", 71:"Slight snow", 73:"Snow",
-    75:"Heavy snow", 80:"Slight showers", 81:"Showers", 82:"Heavy showers",
-    85:"Snow showers", 86:"Heavy snow showers", 95:"Thunderstorm",
-    96:"Thunderstorm with hail", 99:"Thunderstorm with hail"
-  };
-  return descriptions[code] || "Unknown";
-}
-
-/* DRAG */
-function drag(obj){
-  let down=false,offX=0,offY=0;
-
-  obj.el.addEventListener("mousedown",(e)=>{
-    if(drawMode) return;
-
-    down=true;
-    selected=obj;
-    obj.el.classList.add("selected");
-
-    let wx=cam.x+e.clientX/cam.zoom;
-    let wy=cam.y+e.clientY/cam.zoom;
-
-    offX=wx-obj.x;
-    offY=wy-obj.y;
-    
-    e.stopPropagation();
-  });
-
-  document.addEventListener("mousemove",(e)=>{
-    if(!down) return;
-
-    let wx=cam.x+e.clientX/cam.zoom;
-    let wy=cam.y+e.clientY/cam.zoom;
-
-    obj.x=wx-offX;
-    obj.y=wy-offY;
-
-    render();
-    draw();
-  });
-
-  document.addEventListener("mouseup",()=>{
-    down=false;
-    if(selected?.id===obj.id){
-      obj.el.classList.remove("selected");
-    }
-  });
-}
-
-/* RESIZE */
-function resizeHandle(obj, handle){
-  let down=false,startX=0,startY=0,startW=0,startH=0;
-
-  handle.addEventListener("mousedown",(e)=>{
-    if(drawMode) return;
-    e.stopPropagation();
-    e.preventDefault();
-
-    down=true;
-    startX=e.clientX;
-    startY=e.clientY;
-    startW=obj.width;
-    startH=obj.height;
-  });
-
-  document.addEventListener("mousemove",(e)=>{
-    if(!down) return;
-
-    let dx=(e.clientX-startX)/cam.zoom;
-    let dy=(e.clientY-startY)/cam.zoom;
-
-    obj.width=Math.max(100, startW+dx);
-    obj.height=Math.max(100, startH+dy);
-
-    obj.el.style.width=obj.width+"px";
-    obj.el.style.height=obj.height+"px";
-  });
-
-  document.addEventListener("mouseup",()=>{
-    down=false;
-  });
-}
-
-/* RENDER */
-function render(){
-  for(let o of objects){
-    let scale=cam.zoom;
-    o.el.style.left=(o.x-cam.x)*scale+"px";
-    o.el.style.top=(o.y-cam.y)*scale+"px";
-    o.el.style.transform=`scale(${scale})`;
-    o.el.style.transformOrigin="top left";
-  }
-}
-
-/* CAMERA */
-let dragCam=false,last={x:0,y:0};
-
-canvas.addEventListener("mousedown",(e)=>{
-  if(drawMode) return;
-  dragCam=true;
-  last.x=e.clientX;
-  last.y=e.clientY;
-});
-
-canvas.addEventListener("mousemove",(e)=>{
-  if(!dragCam) return;
-  cam.x-=(e.clientX-last.x)/cam.zoom;
-  cam.y-=(e.clientY-last.y)/cam.zoom;
-  last.x=e.clientX;
-  last.y=e.clientY;
-  render();
-  draw();
-});
-
-canvas.addEventListener("mouseup",()=>dragCam=false);
-
-/* ZOOM */
-canvas.addEventListener("wheel",(e)=>{
-  e.preventDefault();
-  let mx=e.clientX;
-  let my=e.clientY;
-  let wx=cam.x+mx/cam.zoom;
-  let wy=cam.y+my/cam.zoom;
-  cam.zoom*=(e.deltaY<0)?1.1:0.9;
-  cam.zoom=Math.max(0.2,Math.min(6,cam.zoom));
-  cam.x=wx-mx/cam.zoom;
-  cam.y=wy-my/cam.zoom;
-  render();
-  draw();
-},{passive:false});
-
-/* DRAWING */
-canvas.addEventListener("mousedown",(e)=>{
-  if(!drawMode) return;
-  current={
-    points:[],
-    color:brushColor,
-    size:brushSize,
-    opacity:drawOpacity
-  };
-  strokes.push(current);
-  let x=cam.x+e.clientX/cam.zoom;
-  let y=cam.y+e.clientY/cam.zoom;
-  current.points.push({x,y});
-  draw();
-});
-
-canvas.addEventListener("mousemove",(e)=>{
-  if(!drawMode || !e.buttons) return;
-  let x=cam.x+e.clientX/cam.zoom;
-  let y=cam.y+e.clientY/cam.zoom;
-  current.points.push({x,y});
-  draw();
-});
-
-/* DRAW STROKES */
-function draw(){
-  updateMainCanvas();
-}
-
-function updateMainCanvas(){
-  ctx.clearRect(0,0,window.innerWidth, window.innerHeight);
-  ctx.lineCap="round";
-  ctx.lineJoin="round";
-
-  for(let s of strokes){
-    if(s.points.length<2) continue;
-    
-    ctx.strokeStyle=s.color;
-    ctx.globalAlpha=s.opacity;
-    ctx.lineWidth=s.size*2*cam.zoom;
-    
-    ctx.beginPath();
-    ctx.moveTo(
-      (s.points[0].x-cam.x)*cam.zoom,
-      (s.points[0].y-cam.y)*cam.zoom
-    );
-    
-    for(let i=1;i<s.points.length;i++){
-      let p=s.points[i];
-      ctx.lineTo(
-        (p.x-cam.x)*cam.zoom,
-        (p.y-cam.y)*cam.zoom
-      );
-    }
-    ctx.stroke();
-  }
-  
-  ctx.globalAlpha=1;
-}
-
-draw();
-
-// Load BG color and weather
-let savedBg=localStorage.getItem("bgColor") || "#1a1a1a";
-setBgColor(savedBg);
-fetchWeather(currentUser.city);
-
-</script>
-
-</body>
-</html>
