@@ -2,614 +2,99 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>World Canvas - Pro Edition</title>
+<title>World Canvas - Login</title>
 
 <style>
 body {
   margin:0;
-  overflow:hidden;
-  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background:#1a1a1a;
-}
-
-canvas {
-  position:fixed;
-  top:0;
-  left:0;
-  z-index:1;
-  background:#1a1a1a;
-}
-
-#world {
-  position:absolute;
-  top:0;
-  left:0;
-  z-index:2;
-}
-
-/* MINIMAP */
-#minimap-container {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  width: 180px;
-  height: 120px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #7c3aed;
-  border-radius: 12px;
-  z-index: 10000;
-  overflow: hidden;
-  backdrop-filter: blur(8px);
-  pointer-events: none;
-}
-#minimap-canvas { width: 100%; height: 100%; }
-#coords {
-  position: absolute;
-  bottom: 5px;
-  right: 8px;
-  color: #a855f7;
-  font-size: 10px;
-  font-family: monospace;
-}
-
-/* NODES */
-.node {
-  position:absolute;
-  border-radius:12px;
-  padding:12px;
-  user-select:none;
-  cursor:grab;
-  box-shadow:0 4px 16px rgba(0,0,0,0.4);
-  min-width:100px;
-  border:2px solid transparent;
-  transition:border 0.2s;
-  backdrop-filter:blur(2px);
-}
-.node:hover { border-color:rgba(255,255,255,0.3); }
-.node.selected { border-color:#7c3aed; box-shadow:0 0 16px rgba(124,58,237,0.6); }
-
-.node-controls {
-  position:absolute;
-  top:-35px;
-  right:0;
-  display:flex;
-  gap:8px;
-  background:rgba(20,20,30,0.95);
-  padding:6px 8px;
-  border-radius:8px;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 0.2s;
-  border:1px solid rgba(255,255,255,0.1);
-}
-.node:hover .node-controls { opacity:1; pointer-events:all; }
-
-.resize-handle {
-  position:absolute;
-  width:14px;
-  height:14px;
-  background:rgba(255,255,255,0.3);
-  border:1px solid rgba(255,255,255,0.5);
-  border-radius:2px;
-  cursor:nwse-resize;
-  bottom:0;
-  right:0;
-  opacity:0;
-}
-.node:hover .resize-handle { opacity:1; }
-
-.node-btn {
-  background:rgba(255,255,255,0.1);
-  border:1px solid rgba(255,255,255,0.2);
-  width:28px;
-  height:28px;
-  border-radius:6px;
-  cursor:pointer;
-  color:#fff;
+  padding:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height:100vh;
   display:flex;
   align-items:center;
   justify-content:center;
 }
 
-/* TEXT BOXES */
-.text-node {
-  background:#2a2a3a;
-  color:#fff;
-  border:2px solid;
-  min-width:200px;
+.container {
+  background:white;
+  border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.2);
+  overflow:hidden;
+  width:100%;
   max-width:400px;
+  margin:20px;
+}
+
+.header {
+  background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color:white;
+  padding:30px;
+  text-align:center;
+}
+
+.header h1 {
+  margin:0;
+  font-size:28px;
+  margin-bottom:5px;
+}
+
+.header p {
+  margin:0;
+  opacity:0.9;
   font-size:14px;
-  line-height:1.6;
-  word-wrap:break-word;
-  white-space:pre-wrap;
 }
-.text-node.blue { border-color:#3b82f6; background:rgba(59,130,246,0.15); }
-.text-node.purple { border-color:#a855f7; background:rgba(168,85,247,0.15); }
-.text-node.pink { border-color:#ec4899; background:rgba(236,72,153,0.15); }
-.text-node.red { border-color:#ef4444; background:rgba(239,68,68,0.15); }
-.text-node.orange { border-color:#f97316; background:rgba(249,115,22,0.15); }
-.text-node.green { border-color:#10b981; background:rgba(16,185,129,0.15); }
-.text-node.cyan { border-color:#06b6d4; background:rgba(6,182,212,0.15); }
-.text-node.yellow { border-color:#eab308; background:rgba(234,179,8,0.15); }
 
-/* WEATHER */
-.weather-widget {
-  background:linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(139,92,246,0.2) 100%);
-  color:white;
+.tabs {
+  display:flex;
+  border-bottom:1px solid #eee;
+}
+
+.tab {
+  flex:1;
   padding:15px;
-  border-radius:12px;
-  min-width:280px;
-  border:2px solid rgba(99,102,241,0.4);
-}
-
-/* TOOLBAR */
-#ui { position:fixed; top:20px; right:20px; z-index:9999; }
-.toolbar {
-  background:rgba(20,20,30,0.95);
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:12px;
-  padding:12px;
-  backdrop-filter:blur(8px);
-  box-shadow:0 4px 20px rgba(0,0,0,0.5);
-}
-.toolbar-section { margin-bottom:12px; }
-.toolbar-label { color:#9ca3af; font-size:11px; font-weight:600; text-transform:uppercase; margin-bottom:6px; display:block; }
-.color-picker { display:flex; gap:6px; flex-wrap:wrap; width:260px; }
-.color-btn { width:32px; height:32px; border-radius:8px; border:2px solid transparent; cursor:pointer; }
-.color-btn.active { border-color:#fff; }
-
-.stroke-colors { display:flex; gap:4px; flex-wrap:wrap; }
-.stroke-color { width:24px; height:24px; border-radius:6px; border:2px solid transparent; cursor:pointer; }
-.stroke-color.active { border-color:#fff; }
-
-.slider-group { display:flex; align-items:center; gap:8px; color:white; font-size:12px; }
-input[type="range"] { width:120px; }
-
-.icon-toolbar { display:flex; gap:4px; flex-wrap:wrap; }
-.icon-btn { width:40px; height:40px; border-radius:8px; background:rgba(255,255,255,0.1); border:none; color:#fff; cursor:pointer; font-size:18px; }
-.icon-btn.active { background:#7c3aed; }
-
-#drawStatus {
-  position:fixed; bottom:20px; right:20px; background:rgba(239,68,68,0.9);
-  color:white; padding:12px 16px; border-radius:8px; display:none; z-index:9998;
-}
-#drawStatus.active { display:block; }
-
-/* USER INFO */
-#userInfo {
-  position:fixed; top:20px; left:20px; background:rgba(20,20,30,0.95);
-  padding:12px 15px; border-radius:12px; z-index:9999; color:#fff; font-size:13px;
-  border:1px solid rgba(255,255,255,0.1);
-  backdrop-filter: blur(8px);
-}
-
-#logoutBtn {
-  background:rgba(239,68,68,0.8);
-  color:white;
-  border:none;
-  padding:4px 10px;
-  border-radius:6px;
+  text-align:center;
   cursor:pointer;
-  font-size:11px;
-  margin-left:10px;
+  background:#f9f9f9;
+  border:none;
+  font-size:14px;
+  font-weight:bold;
+  color:#666;
+  transition:all 0.3s;
 }
 
-/* RULES */
-#rulesOverlay {
-  position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);
-  display:flex; align-items:center; justify-content:center; z-index:10000;
-  backdrop-filter: blur(4px);
-}
-#stickyNote {
-  background:#fef3c7; border:3px solid #f59e0b; border-radius:8px;
-  padding:24px; width:320px; text-align:center; color:#333;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-}
-</style>
-</head>
-
-<body>
-
-<canvas id="canvas"></canvas>
-<div id="world"></div>
-
-<!-- MINIMAP -->
-<div id="minimap-container">
-  <canvas id="minimap-canvas"></canvas>
-  <div id="coords">X: 0, Y: 0</div>
-</div>
-
-<div id="drawStatus">🖌️ Drawing Mode ON</div>
-
-<div id="userInfo">
-  <span id="username">👤 Guest</span> | <span id="userCity">🌍 World</span>
-  <button id="logoutBtn" onclick="logout()">Logout</button>
-</div>
-
-<div id="rulesOverlay">
-  <div id="stickyNote">
-    <h2 style="color:#d97706">📋 Rules</h2>
-    <ul style="text-align:left; font-size:13px; list-style:none; padding:0;">
-      <li style="margin-bottom:8px">❌ No offensive content</li>
-      <li style="margin-bottom:8px">✅ Be respectful & creative</li>
-      <li style="margin-bottom:8px">✅ Collaborate with others</li>
-    </ul>
-    <button onclick="closeStickyNote()" style="background:#d97706; color:white; border:none; padding:10px 25px; border-radius:6px; cursor:pointer; font-weight:bold; margin-top:10px;">Got it!</button>
-  </div>
-</div>
-
-<div id="ui">
-  <div class="toolbar">
-    
-    <!-- TEXT COLOR -->
-    <div class="toolbar-section">
-      <label class="toolbar-label">Text Color</label>
-      <div class="color-picker">
-        <button class="color-btn active" onclick="setTextColor('blue', event)" style="background:#3b82f6"></button>
-        <button class="color-btn" onclick="setTextColor('purple', event)" style="background:#a855f7"></button>
-        <button class="color-btn" onclick="setTextColor('pink', event)" style="background:#ec4899"></button>
-        <button class="color-btn" onclick="setTextColor('red', event)" style="background:#ef4444"></button>
-        <button class="color-btn" onclick="setTextColor('orange', event)" style="background:#f97316"></button>
-        <button class="color-btn" onclick="setTextColor('green', event)" style="background:#10b981"></button>
-        <button class="color-btn" onclick="setTextColor('cyan', event)" style="background:#06b6d4"></button>
-        <button class="color-btn" onclick="setTextColor('yellow', event)" style="background:#eab308"></button>
-      </div>
-    </div>
-
-    <!-- TEXT OPACITY -->
-    <div class="toolbar-section">
-      <div class="slider-group">
-        <label>Opacity</label>
-        <input type="range" id="textOpacity" min="0" max="100" value="100" oninput="updateTextOpacity(this.value)">
-        <span id="opacityValue">100%</span>
-      </div>
-    </div>
-
-    <!-- STROKE SETTINGS -->
-    <div class="toolbar-section">
-      <label class="toolbar-label">Stroke Color</label>
-      <div class="stroke-colors">
-        <button class="stroke-color active" style="background:#fff" onclick="setStrokeColor('white', event)"></button>
-        <button class="stroke-color" style="background:#000" onclick="setStrokeColor('black', event)"></button>
-        <button class="stroke-color" style="background:#ef4444" onclick="setStrokeColor('red', event)"></button>
-        <button class="stroke-color" style="background:#3b82f6" onclick="setStrokeColor('blue', event)"></button>
-        <button class="stroke-color" style="background:#10b981" onclick="setStrokeColor('green', event)"></button>
-      </div>
-    </div>
-
-    <div class="toolbar-section">
-      <div class="slider-group">
-        <label>Width</label>
-        <input type="range" id="brushSize" min="1" max="20" value="3" oninput="updateBrushSize(this.value)">
-        <span id="sizeValue">3</span>
-      </div>
-    </div>
-
-    <div class="toolbar-section">
-      <div class="slider-group">
-        <label>Draw Opacity</label>
-        <input type="range" id="drawOpacity" min="0" max="100" value="100" oninput="updateDrawOpacity(this.value)">
-        <span id="drawOpacityValue">100%</span>
-      </div>
-    </div>
-
-    <!-- BG COLOR -->
-    <div class="toolbar-section">
-      <label class="toolbar-label">Background</label>
-      <div class="color-picker">
-        <button class="color-btn active" onclick="setBgColor('#1a1a1a', event)" style="background:#1a1a1a; border-color:#7c3aed;"></button>
-        <button class="color-btn" onclick="setBgColor('#0f0f1e', event)" style="background:#0f0f1e;"></button>
-        <button class="color-btn" onclick="setBgColor('#1e293b', event)" style="background:#1e293b;"></button>
-        <button class="color-btn" onclick="setBgColor('#0d1117', event)" style="background:#0d1117;"></button>
-      </div>
-    </div>
-
-    <!-- TOOLS -->
-    <div class="toolbar-section">
-      <label class="toolbar-label">Tools</label>
-      <div class="icon-toolbar">
-        <button class="icon-btn" onclick="addText()" title="Add Text">📝</button>
-        <button class="icon-btn" onclick="addYT()" title="Add YouTube">▶️</button>
-        <button class="icon-btn" onclick="addWeather()" title="Add Weather">🌤️</button>
-        <button class="icon-btn" id="drawBtn" onclick="toggleDraw()" title="Draw">🖌️</button>
-        <button class="icon-btn" onclick="clearAll()" title="Clear All">🗑️</button>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<script>
-/** STATE & LOGIN FALLBACK **/
-let currentUser = JSON.parse(localStorage.getItem("currentUser"));
-
-if (!currentUser) {
-  currentUser = { username: "Guest", city: "London" };
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+.tab.active {
+  background:white;
+  color:#667eea;
+  border-bottom:3px solid #667eea;
+  margin-bottom:-1px;
 }
 
-document.getElementById("username").textContent = "👤 " + currentUser.username;
-document.getElementById("userCity").textContent = "🌍 " + currentUser.city;
-
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const world = document.getElementById("world");
-const miniCanvas = document.getElementById("minimap-canvas");
-const miniCtx = miniCanvas.getContext("2d");
-
-canvas.width = innerWidth;
-canvas.height = innerHeight;
-
-let cam = { x: 0, y: 0, zoom: 1 };
-let objects = [];
-let strokes = [];
-let currentStroke = null;
-let nextId = 0;
-
-/* SETTINGS */
-let drawMode = false;
-let brushColor = "white";
-let brushSize = 3;
-let drawOpacity = 1;
-let textColor = "blue";
-let textOpacity = 1;
-let bgColor = "#1a1a1a";
-let currentWeather = {};
-
-/** SAVE SYSTEM **/
-function saveAll() {
-  const data = {
-    strokes,
-    bgColor,
-    objects: objects.map(o => ({
-      id: o.id, x: o.x, y: o.y, width: o.width, height: o.height,
-      type: o.type, content: o.type === 'text' ? o.el.innerHTML : o.content,
-      colorClass: o.colorClass, opacity: o.opacity
-    }))
-  };
-  localStorage.setItem("world_canvas_final_save", JSON.stringify(data));
+.tab:hover {
+  background:#f5f5f5;
 }
 
-function loadAll() {
-  const saved = localStorage.getItem("world_canvas_final_save");
-  if (!saved) return;
-  const data = JSON.parse(saved);
-  strokes = data.strokes || [];
-  bgColor = data.bgColor || "#1a1a1a";
-  setBgColor(bgColor);
-  
-  data.objects.forEach(obj => {
-    if (obj.type === 'text') recreateText(obj);
-    else if (obj.type === 'yt') recreateYT(obj);
-    else if (obj.type === 'weather') recreateWeather(obj);
-  });
-  render();
-  draw();
+.content {
+  padding:30px;
 }
 
-/** COORDINATES **/
-function toWorld(x, y) { return { x: (x / cam.zoom) + cam.x, y: (y / cam.zoom) + cam.y }; }
-function toScreen(pos) { return { x: (pos.x - cam.x) * cam.zoom, y: (pos.y - cam.y) * cam.zoom }; }
-
-/** UI FUNCTIONS **/
-function closeStickyNote() { 
-  document.getElementById("rulesOverlay").style.display = "none"; 
+.form-group {
+  margin-bottom:15px;
 }
 
-function logout() { 
-  localStorage.removeItem("currentUser"); 
-  window.location.href = "login.html"; 
+.form-group label {
+  display:block;
+  margin-bottom:5px;
+  color:#333;
+  font-weight:bold;
+  font-size:13px;
 }
 
-function setTextColor(color, e) {
-  textColor = color;
-  document.querySelectorAll('.color-picker .color-btn').forEach(b => b.classList.remove('active'));
-  if(e) e.target.classList.add('active');
-}
-
-function updateTextOpacity(val) {
-  textOpacity = val / 100;
-  document.getElementById("opacityValue").textContent = val + "%";
-}
-
-function setStrokeColor(color, e) {
-  brushColor = color;
-  document.querySelectorAll('.stroke-color').forEach(b => b.classList.remove('active'));
-  if(e) e.target.classList.add('active');
-}
-
-function updateBrushSize(val) {
-  brushSize = val;
-  document.getElementById("sizeValue").textContent = val;
-}
-
-function updateDrawOpacity(val) {
-  drawOpacity = val / 100;
-  document.getElementById("drawOpacityValue").textContent = val + "%";
-}
-
-function setBgColor(color, e) {
-  bgColor = color;
-  canvas.style.background = color;
-  if(e) {
-    document.querySelectorAll('.color-picker .color-btn').forEach(b => b.style.borderColor = 'transparent');
-    e.target.style.borderColor = '#7c3aed';
-  }
-  saveAll();
-}
-
-function toggleDraw() {
-  drawMode = !drawMode;
-  document.getElementById("drawStatus").classList.toggle("active");
-  document.getElementById("drawBtn").classList.toggle("active");
-}
-
-/** OBJECT CREATION **/
-function createNode(el, x, y, type, content = "", colorClass = "", opacity = 1) {
-  let id = nextId++;
-  let o = { id, el, x, y, width: 320, height: 200, type, content, colorClass, opacity };
-  objects.push(o);
-  world.appendChild(el);
-  
-  el.style.width = o.width + "px";
-  el.style.height = o.height + "px";
-  el.style.opacity = opacity;
-  
-  let controls = document.createElement("div");
-  controls.className = "node-controls";
-  controls.innerHTML = `<button class="node-btn" onclick="deleteNode(${id})">✕</button>`;
-  el.appendChild(controls);
-
-  let resizer = document.createElement("div");
-  resizer.className = "resize-handle";
-  el.appendChild(resizer);
-  
-  initResizing(o, resizer);
-  initDragging(o);
-  
-  render();
-  saveAll();
-  return o;
-}
-
-function deleteNode(id) {
-  let idx = objects.findIndex(o => o.id === id);
-  if (idx < 0) return;
-  objects[idx].el.remove();
-  objects.splice(idx, 1);
-  saveAll();
-}
-
-function clearAll() {
-  if (confirm("Clear everything?")) {
-    objects.forEach(o => o.el.remove());
-    objects = []; strokes = [];
-    saveAll(); render(); draw();
-  }
-}
-
-/* TEXT */
-function addText() {
-  let el = document.createElement("div");
-  el.className = "node text-node " + textColor;
-  el.contentEditable = true;
-  el.innerHTML = "New Note...";
-  el.oninput = () => saveAll();
-  const pos = toWorld(innerWidth/2 - 150, innerHeight/2 - 100);
-  createNode(el, pos.x, pos.y, 'text', "", textColor, textOpacity);
-}
-
-function recreateText(data) {
-  let el = document.createElement("div");
-  el.className = "node text-node " + data.colorClass;
-  el.contentEditable = true;
-  el.innerHTML = data.content;
-  el.oninput = () => saveAll();
-  let o = createNode(el, data.x, data.y, 'text', "", data.colorClass, data.opacity);
-  o.width = data.width; o.height = data.height;
-  el.style.width = o.width + "px"; el.style.height = o.height + "px";
-}
-
-/* YOUTUBE */
-function addYT() {
-  let url = prompt("YouTube URL");
-  if (!url) return;
-  let id = url.includes("v=") ? url.split("v=")[1].split("&")[0] : url.split("/").pop();
-  let el = document.createElement("div");
-  el.style.padding = "0";
-  el.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" style="width:100%;height:100%;border-radius:8px;" frameborder="0"></iframe>`;
-  const pos = toWorld(innerWidth/2 - 150, innerHeight/2 - 100);
-  createNode(el, pos.x, pos.y, 'yt', id);
-}
-
-function recreateYT(data) {
-  let el = document.createElement("div");
-  el.style.padding = "0";
-  el.innerHTML = `<iframe src="https://www.youtube.com/embed/${data.content}" style="width:100%;height:100%;border-radius:8px;" frameborder="0"></iframe>`;
-  let o = createNode(el, data.x, data.y, 'yt', data.content);
-  o.width = data.width; o.height = data.height;
-  el.style.width = o.width + "px"; el.style.height = o.height + "px";
-}
-
-/* WEATHER */
-function addWeather() {
-  if(!currentWeather.temp) { fetchWeather(currentUser.city); return; }
-  let el = document.createElement("div");
-  el.className = "node weather-widget";
-  el.innerHTML = `
-    <div style="padding:5px;">
-      <h3 style="margin:0; font-size:16px;">${currentWeather.city} 🌤️</h3>
-      <div style="font-size:24px; font-weight:bold; color:#60a5fa;">${currentWeather.temp}°C</div>
-      <div style="font-size:11px; background:rgba(0,0,0,0.3); padding:8px; border-radius:8px; margin-top:10px;">
-        Feels: ${currentWeather.feels}°C | Wind: ${currentWeather.wind}km/h
-      </div>
-    </div>`;
-  const pos = toWorld(innerWidth/2 - 150, innerHeight/2 - 100);
-  createNode(el, pos.x, pos.y, 'weather', JSON.stringify(currentWeather));
-}
-
-function recreateWeather(data) {
-  let w = JSON.parse(data.content);
-  let el = document.createElement("div");
-  el.className = "node weather-widget";
-  el.innerHTML = `<div style="padding:5px;"><h3 style="margin:0;">${w.city} 🌤️</h3><div style="font-size:24px; font-weight:bold;">${w.temp}°C</div></div>`;
-  let o = createNode(el, data.x, data.y, 'weather', data.content);
-  o.width = data.width; o.height = data.height;
-}
-
-function fetchWeather(city) {
-  fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`)
-    .then(r => r.json()).then(data => {
-      if(!data.results) return;
-      let loc = data.results[0];
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,apparent_temperature,wind_speed_10m`)
-        .then(r => r.json()).then(w => {
-          currentWeather = { city: loc.name, temp: w.current.temperature_2m, feels: w.current.apparent_temperature, wind: w.current.wind_speed_10m };
-          addWeather();
-        });
-    });
-}
-
-/** INTERACTIONS **/
-function initDragging(obj) {
-  let down = false, startM = { x: 0, y: 0 }, startO = { x: 0, y: 0 };
-  obj.el.addEventListener("mousedown", (e) => {
-    if (drawMode || e.target.classList.contains('resize-handle')) return;
-    down = true;
-    startM = { x: e.clientX, y: e.clientY };
-    startO = { x: obj.x, y: obj.y };
-    obj.el.classList.add("selected");
-    e.stopPropagation();
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (!down) return;
-    obj.x = startO.x + (e.clientX - startM.x) / cam.zoom;
-    obj.y = startO.y + (e.clientY - startM.y) / cam.zoom;
-    render();
-  });
-  window.addEventListener("mouseup", () => { if(down) { down = false; obj.el.classList.remove("selected"); saveAll(); } });
-}
-
-function initResizing(obj, handle) {
-  let down = false, startM = { x: 0, y: 0 }, startS = { w: 0, h: 0 };
-  handle.addEventListener("mousedown", (e) => {
-    down = true;
-    startM = { x: e.clientX, y: e.clientY };
-    startS = { w: obj.width, h: obj.height };
-    e.stopPropagation(); e.preventDefault();
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (!down) return;
-    obj.width = Math.max(100, startS.w + (e.clientX - startM.x) / cam.zoom);
-    obj.height = Math.max(100, startS.h + (e.clientY - startM.y) / cam.zoom);
-    obj.el.style.width = obj.width + "px";
-    obj.el.style.height = obj.height + "px";
-  });
-  window.addEventListener("mouseup", () => { if(down) { down = false; saveAll(); } });
-}
-
-/** CAMERA & DRAW **/
-let isPanning = false, lastM = { x: 0, y: 0 };
-canvas.addEventListener("mousedown", (e) => {
-  if (drawMode) {
-    currentStroke = { points: [toWorld(e.clientX, e.clientY)], color: brushColor, size: brushSize,
+.form-group input {
+  width:100%;
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:6px;
+  box-sizing:border-box;
+  font-size:14px;
+  transition:border-color 0.3s;
