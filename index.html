@@ -614,32 +614,87 @@ function addWeather(){
   document.getElementById("plus").classList.remove("active");
 }
 
-/* FETCH WEATHER */
+/* FETCH WEATHER - Using Open-Meteo (No API Key Required!) */
 function fetchWeather(city){
-  let apiKey="b6fd43b89eb8d2ca34a4e9e68f29739f";
-  let url=`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+  console.log("Fetching weather for:", city);
   
-  fetch(url)
+  // First, get coordinates for the city using Geocoding API
+  let geocodeUrl=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
+  
+  fetch(geocodeUrl)
     .then(r=>r.json())
     .then(data=>{
-      if(data.cod!==200){
-        alert("Could not fetch weather for "+city);
+      console.log("Geocoding response:", data);
+      
+      if(!data.results || data.results.length===0){
+        alert("City not found: "+city);
         return;
       }
-      currentWeather={
-        city:data.name,
-        temp:data.main.temp,
-        feels:data.main.feels_like,
-        desc:data.weather[0].main,
-        humidity:data.main.humidity,
-        wind:data.wind.speed
-      };
-      addWeather();
+      
+      let location=data.results[0];
+      let lat=location.latitude;
+      let lon=location.longitude;
+      let name=location.name;
+      if(location.admin1) name+=", "+location.admin1;
+      
+      console.log("Found location:", name, "lat:", lat, "lon:", lon);
+      
+      // Now get weather data
+      let weatherUrl=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`;
+      
+      return fetch(weatherUrl).then(r=>r.json()).then(weatherData=>{
+        console.log("Weather response:", weatherData);
+        
+        let current=weatherData.current;
+        let weatherDesc=getWeatherDescription(current.weather_code);
+        
+        currentWeather={
+          city:name,
+          temp:current.temperature_2m,
+          feels:current.apparent_temperature,
+          desc:weatherDesc,
+          humidity:current.relative_humidity_2m,
+          wind:(current.wind_speed_10m / 3.6).toFixed(1)  // Convert km/h to m/s
+        };
+        
+        console.log("Weather data:", currentWeather);
+        addWeather();
+      });
     })
     .catch(e=>{
-      alert("Error fetching weather");
-      console.error(e);
+      console.error("Weather error:", e);
+      alert("Could not fetch weather. Error: "+e.message);
     });
+}
+
+/* WMO Weather Code to Description */
+function getWeatherDescription(code){
+  const descriptions={
+    0:"Clear sky",
+    1:"Mainly clear",
+    2:"Partly cloudy",
+    3:"Overcast",
+    45:"Foggy",
+    48:"Foggy",
+    51:"Light drizzle",
+    53:"Drizzle",
+    55:"Heavy drizzle",
+    61:"Slight rain",
+    63:"Rain",
+    65:"Heavy rain",
+    71:"Slight snow",
+    73:"Snow",
+    75:"Heavy snow",
+    80:"Slight showers",
+    81:"Showers",
+    82:"Heavy showers",
+    85:"Snow showers",
+    86:"Heavy snow showers",
+    95:"Thunderstorm",
+    96:"Thunderstorm with hail",
+    99:"Thunderstorm with hail"
+  };
+  return descriptions[code] || "Unknown";
 }
 
 /* =========================
