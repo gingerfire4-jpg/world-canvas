@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>World Canvas - Full Pro Edition</title>
+<title>World Canvas - Pro Edition</title>
 
 <style>
 body {
@@ -320,8 +320,14 @@ input[type="range"] { width:120px; }
 </div>
 
 <script>
-/** STATE **/
-let currentUser = JSON.parse(localStorage.getItem("currentUser")) || { username: "Guest", city: "London" };
+/** STATE & LOGIN FALLBACK **/
+let currentUser = JSON.parse(localStorage.getItem("currentUser"));
+
+if (!currentUser) {
+  currentUser = { username: "Guest", city: "London" };
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+}
+
 document.getElementById("username").textContent = "👤 " + currentUser.username;
 document.getElementById("userCity").textContent = "🌍 " + currentUser.city;
 
@@ -378,6 +384,7 @@ function loadAll() {
     else if (obj.type === 'weather') recreateWeather(obj);
   });
   render();
+  draw();
 }
 
 /** COORDINATES **/
@@ -477,7 +484,7 @@ function clearAll() {
   if (confirm("Clear everything?")) {
     objects.forEach(o => o.el.remove());
     objects = []; strokes = [];
-    saveAll(); render();
+    saveAll(); render(); draw();
   }
 }
 
@@ -605,13 +612,4 @@ function initResizing(obj, handle) {
 let isPanning = false, lastM = { x: 0, y: 0 };
 canvas.addEventListener("mousedown", (e) => {
   if (drawMode) {
-    currentStroke = { points: [toWorld(e.clientX, e.clientY)], color: brushColor, size: brushSize, opacity: drawOpacity };
-    strokes.push(currentStroke);
-  } else {
-    isPanning = true; lastM = { x: e.clientX, y: e.clientY };
-  }
-});
-
-window.addEventListener("mousemove", (e) => {
-  if (isPanning) {
-    
+    currentStroke = { points: [toWorld(e.clientX, e.clientY)], color: brushColor, size: brushSize,
